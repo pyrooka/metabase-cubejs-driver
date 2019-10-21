@@ -1,0 +1,15 @@
+# Builds
+/target
+
+# Environment variables
+*.env
+
+# Builds
+*.jar
+
+# Personal Cube.js scripts (schemas)
+/test/cubejs/schema/*.js
+
+# Docker volumes
+/test/driver
+/test/metabase-data

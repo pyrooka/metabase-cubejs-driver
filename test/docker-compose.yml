@@ -1,0 +1,19 @@
+version: '3'
+services:
+  cubejs:
+    image: 'cubejs-metabackend'
+    env_file:
+      - cubejs.env
+    ports:
+      - '4000:4000'
+  metabase:
+    image: 'metabase/metabase'
+    environment:
+      - MB_DB_FILE=/metabase-data/metabase.db
+    volumes:
+      - ./metabase-data:/metabase-data
+      - ./driver:/plugins
+    depends_on:
+      - cubejs
+    ports:
+      - '3000:3000'

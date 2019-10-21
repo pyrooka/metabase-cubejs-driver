@@ -1,0 +1,17 @@
+# Complete list of options here: https://github.com/metabase/metabase/wiki/Metabase-Plugin-Manifest-Reference
+info:
+  name: Metabase Cubejs Driver
+  version: 0.1.0
+  description: Cubejs REST API driver
+driver:
+  name: cubejs
+  display-name: Cube.js
+  lazy-load: true
+  connection-properties:
+    - name: cubeurl
+      display-name: URL
+      type: string
+      default: "http://cubejs:4000/cubejs-api/"
+init:
+  - step: load-namespace
+    namespace: metabase.driver.cubejs
