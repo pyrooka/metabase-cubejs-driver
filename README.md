@@ -6,8 +6,8 @@ Cube.js driver for Metabase.
 # Features
 - **Auto generate data model** from the schema fetched from the Cube.js API
 - **Auto create metrics** from the measures. (These metrics are "invalid" when you try to edit them but still usable in queries.)
-- Support for **native questions**
-- Support for **custom queries**
+- Support for **native queries**
+- Support for **custom questions**
 
 # Installation
 ## Get the driver
