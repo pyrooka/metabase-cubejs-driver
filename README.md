@@ -1,7 +1,14 @@
 # cubejs-metabase-driver
 Cube.js driver for Metabase.
-## Note
-The driver is under development so expect some bugs and missing features. If you find one of them please create an issue.
+
+**NOTE: The driver is under development so expect some bugs and missing features. If you find one please create an issue.**
+
+# Features
+- **Auto generate data model** from the schema fetched from the Cube.js API
+- **Auto create metrics** from the measures. (These metrics are "invalid" when you try to edit them but still usable in queries.)
+- Support for **native questions**
+- Support for **custom queries**
+
 # Installation
 ## Get the driver
 ### Download
@@ -15,23 +22,20 @@ Download from the [releases](https://github.com/lili-data/metabase-cubejs-driver
 ### Build without Docker
 [Use this guide.](https://github.com/tlrobinson/metabase-http-driver/blob/master/README.md#building-the-driver)
 
-## Copy to your metabase plugins
+## Copy to your Metabase plugins
 `cp your-driver.jar /path/to/metabase/plugins/`  
 Note: you have to restart Metabase to load new plugins
 
+# Usage
+1. Add and configure your Cube.js "DB" ![Add new DB](./docs/images/config.png)
+2. Inspect your Data Model ![Data Model](./docs/images/datamodel.png)
+3. Create a query
+   - Native ![Native query](./docs/images/nativequery.png)
+   - Custom question ![Custom question](./docs/images/customquestion.png)
+4. Explore the data ![Results](./docs/images/customresult.png)
 # Development
 ## Roadmap
-v1.0.0
-- [x] FIX time dimensions (atm always return with nil)
-- [ ] Fill the result with dummy columns, because if the result has fewer cols than the MBQL has error returned
-- [x] Inspect and implement mbql->cubejs for "simple" dimensions
-- [ ] Implement mbql->cubejs for order-by
-- [ ] Local DB for testing
-  - [ ] Fill with data
-  - [ ] Add it to compose
-  - [ ] Create schemas
-  - [ ] Use it in Cube.js
-- [ ] Write tests
+[v1.0.0](https://github.com/lili-data/metabase-cubejs-driver/milestone/1)
 
 ## Testing the driver
 1. Go to the `test` directory
