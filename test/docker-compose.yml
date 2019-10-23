@@ -23,8 +23,10 @@ services:
   metabase:
     image: 'metabase/metabase'
     environment:
+      - JAVA_OPTS=-Dlog4j.configuration=file:/log4j.properties
       - MB_DB_FILE=/metabase-data/metabase.db
     volumes:
+      - ./metabase/log4j.properties:/log4j.properties
       - ./metabase-data:/metabase-data
       - ./driver:/plugins
     depends_on:
