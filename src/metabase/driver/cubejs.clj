@@ -85,8 +85,8 @@
    (let [field-ids   (mbql.util/match (:fields query) [:field-id id] id)
          field-names (get-field-names-by-type field-ids "measure")]
      field-names)
-    ;; Another case if we use metrics so Metabase creates the query for us.
-    (mbql.util/match query [:aggregation-options _ {:display-name name}] name)))
+   ;; Another case if we use metrics so Metabase creates the query for us.
+   (mbql.util/match query [:aggregation-options _ {:display-name name}] name)))
 
 (defn- get-dimensions
   "Get the dimension fields from a MBQL query."
