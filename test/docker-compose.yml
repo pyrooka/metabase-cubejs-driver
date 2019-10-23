@@ -1,9 +1,23 @@
 version: '3'
 services:
+  db:
+    image: 'postgres:alpine'
+    environment:
+     - POSTGRES_USER=postgres
+     - POSTGRES_PASSWORD=postgres
+    volumes:
+      - ./db:/docker-entrypoint-initdb.d
   cubejs:
     image: 'cubejs-metabackend'
-    env_file:
-      - cubejs.env
+    environment:
+      - CUBEJS_API_SECRET=asd0123456789asdCUBEJS_API_SECRET=7dbdadf7951757f6efd6bbe031baba2fe50263d28bfd5fee62ca9f51cbbbeb302fe907ba2a78f4f4a038bc3509aac6229dc8ec8b9d7e3945e7bcdf7ade42e7d1
+      - CUBEJS_DB_HOST=db
+      - CUBEJS_DB_NAME=postgres
+      - CUBEJS_DB_USER=postgres
+      - CUBEJS_DB_PASS=postgres
+      - CUBEJS_DB_TYPE=postgres
+    depends_on:
+      - db
     ports:
       - '4000:4000'
   metabase:
