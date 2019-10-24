@@ -1,6 +1,7 @@
 (ns metabase.driver.cubejs
   "Cube.js REST API driver."
-  (:require [metabase.driver :as driver]
+  (:require [clojure.tools.logging :as log]
+            [metabase.driver :as driver]
             [metabase.mbql.util :as mbql.util]
             [metabase.query-processor.store :as qp.store]
             [metabase.models.metric :as metric :refer [Metric]]
@@ -69,13 +70,17 @@
 
 (defn- transform-orderby
   "Transform the MBQL order by to a Cube.js order."
-  [query])
-
-(defn- aggregation->display-name
-  "Get the display name of the metric from an aggregation."
-  [aggregation]
-  (let [maps (filter map? aggregation)]
-    (for [map maps] (:display-name map))))
+  [query]
+  (let [order-by (:order-by query)]
+    ;; Iterate over the order-by fields.
+    (into {} (for [[direction [field-type value]] order-by] (
+                                                             ;; Get the name of the field based on its type..
+                                                             let [fieldname (case field-type
+                                                                              :field-id       (first (get-field [field-type value]))
+                                                                              :aggregation    (nth (mbql.util/match query [:aggregation-options _ {:display-name name}] name) value)
+                                                                              :datetime-field (first (get-field value))
+                                                                              nil)]
+                                                              {fieldname direction})))))
 
 (defn- get-measures
   "Get the measure fields from a MBQL query."
@@ -113,12 +118,13 @@
   (let [measures        (get-measures query)
         dimensions      (get-dimensions query)
         time-dimensions (get-time-dimensions query)
+        order-by        (transform-orderby query)
         limit           (:limit query)]
     (merge
-     {:measures (if measures measures ("SupplierLeads.leads"))}
-     (if dimensions {:dimensions dimensions})
-     (if time-dimensions {:timeDimensions (for [td time-dimensions] {:dimension (first td), :granularity (second td)})})
-     ;:order (if (:order-by query) ())
+     (if (empty? measures) nil {:measures measures})
+     (if (empty? dimensions) nil {:dimensions dimensions})
+     (if (empty? time-dimensions) nil {:timeDimensions (for [td time-dimensions] {:dimension (first td), :granularity (second td)})})
+     (if (empty? order-by) nil {:order order-by})
      (if limit {:limit limit}))))
 
 ;;; Implement Metabase driver functions.
@@ -157,6 +163,7 @@
      :fields (set (concat measures dimensions))}))
 
 (defmethod driver/mbql->native :cubejs [_ query]
+  (log/debug "MBQL:" query)
   (let [base-query  (mbql->cubejs (:query query))]
     {:query base-query
      :mbql? true}))
