@@ -1,6 +1,7 @@
 (ns metabase.driver.cubejs
   "Cube.js REST API driver."
-  (:require [metabase.driver :as driver]
+  (:require [clojure.tools.logging :as log]
+            [metabase.driver :as driver]
             [metabase.mbql.util :as mbql.util]
             [metabase.query-processor.store :as qp.store]
             [metabase.models.metric :as metric :refer [Metric]]
@@ -157,6 +158,7 @@
      :fields (set (concat measures dimensions))}))
 
 (defmethod driver/mbql->native :cubejs [_ query]
+  (log/debug "MBQL:" query)
   (let [base-query  (mbql->cubejs (:query query))]
     {:query base-query
      :mbql? true}))
