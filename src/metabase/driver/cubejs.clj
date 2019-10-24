@@ -72,12 +72,6 @@
   "Transform the MBQL order by to a Cube.js order."
   [query])
 
-(defn- aggregation->display-name
-  "Get the display name of the metric from an aggregation."
-  [aggregation]
-  (let [maps (filter map? aggregation)]
-    (for [map maps] (:display-name map))))
-
 (defn- get-measures
   "Get the measure fields from a MBQL query."
   [query]
