@@ -70,7 +70,17 @@
 
 (defn- transform-orderby
   "Transform the MBQL order by to a Cube.js order."
-  [query])
+  [query]
+  (let [order-by (:order-by query)]
+    ;; Iterate over the order-by fields.
+    (into {} (for [[direction [field-type value]] order-by] (
+                                                             ;; Get the name of the field based on its type..
+                                                             let [fieldname (case field-type
+                                                                              :field-id       (first (get-field [field-type value]))
+                                                                              :aggregation    (nth (mbql.util/match query [:aggregation-options _ {:display-name name}] name) value)
+                                                                              :datetime-field (first (get-field value))
+                                                                              nil)]
+                                                              {fieldname direction})))))
 
 (defn- get-measures
   "Get the measure fields from a MBQL query."
@@ -108,12 +118,13 @@
   (let [measures        (get-measures query)
         dimensions      (get-dimensions query)
         time-dimensions (get-time-dimensions query)
+        order-by        (transform-orderby query)
         limit           (:limit query)]
     (merge
-     {:measures (if measures measures ("SupplierLeads.leads"))}
-     (if dimensions {:dimensions dimensions})
-     (if time-dimensions {:timeDimensions (for [td time-dimensions] {:dimension (first td), :granularity (second td)})})
-     ;:order (if (:order-by query) ())
+     (if (empty? measures) nil {:measures measures})
+     (if (empty? dimensions) nil {:dimensions dimensions})
+     (if (empty? time-dimensions) nil {:timeDimensions (for [td time-dimensions] {:dimension (first td), :granularity (second td)})})
+     (if (empty? order-by) nil {:order order-by})
      (if limit {:limit limit}))))
 
 ;;; Implement Metabase driver functions.
