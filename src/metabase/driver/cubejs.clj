@@ -13,6 +13,15 @@
 (def cubejs-time->metabase-type
   :type/DateTime)
 
+;; In case of a full table query the granularity is :default so we have to change it manually.
+(def default-cubejs-granularity
+  :day)
+
+(defn- mbql-granularity->cubejs-granularity
+  "Set the correct granularity for the Cube.js query."
+  [granularity]
+  (if (= granularity :default) default-cubejs-granularity granularity))
+
 (defn- measure-in-metrics?
   "Checks is the given measure already in the metrics."
   [measure metrics]
@@ -108,7 +117,7 @@
 (defn- get-time-dimensions
   "Get the time dimensions from the MBQL query."
   [query]
-  (let [fields       (mbql.util/match query [:datetime-field [:field-id id] gran] (list id gran))
+  (let [fields       (mbql.util/match query [:datetime-field [:field-id id] gran] (list id (mbql-granularity->cubejs-granularity gran)))
         named-fields (for [field fields] (list (:name (qp.store/field (first field))) (second field)))]
     (if named-fields (set named-fields))))
 
@@ -165,8 +174,9 @@
 (defmethod driver/mbql->native :cubejs [_ query]
   (log/debug "MBQL:" query)
   (let [base-query  (mbql->cubejs (:query query))]
-    {:query base-query
-     :mbql? true}))
+    {:query        base-query
+     :aggregation? (if-not (empty? (:aggregation (:query query))) true)
+     :mbql?        true}))
 
 (defmethod driver/execute-query :cubejs [_ {native-query :native}]
   (cubejs.qp/execute-http-request native-query))

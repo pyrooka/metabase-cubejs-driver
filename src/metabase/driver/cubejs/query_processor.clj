@@ -2,6 +2,7 @@
   (:refer-clojure :exclude [==])
   (:require [clojure.walk :as walk]
             [metabase.query-processor.store :as qp.store]
+            [flatland.ordered.map :as ordered-map]
             [cheshire.core :as json]
             [clj-http.client :as client]))
 
@@ -27,6 +28,7 @@
                                        :accept         :json
                                        :as             :json})
         rows          (:data (:body result))
-        fields        (or (:fields (:result native-query)) (keys (first rows)))]
-    {:columns fields
-     :rows    (extract-fields rows fields)}))
+        cols          (if (:aggregation? native-query) (keys (first rows)))
+        result        (if (:aggregation? native-query) {:columns cols :rows (extract-fields rows cols)} {:rows (for [row rows] (into (ordered-map/ordered-map) row))})]
+    result
+    ))
