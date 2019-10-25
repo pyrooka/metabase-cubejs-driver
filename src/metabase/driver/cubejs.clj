@@ -174,8 +174,9 @@
 (defmethod driver/mbql->native :cubejs [_ query]
   (log/debug "MBQL:" query)
   (let [base-query  (mbql->cubejs (:query query))]
-    {:query base-query
-     :mbql? true}))
+    {:query        base-query
+     :aggregation? (if-not (empty? (:aggregation (:query query))) true)
+     :mbql?        true}))
 
 (defmethod driver/execute-query :cubejs [_ {native-query :native}]
   (cubejs.qp/execute-http-request native-query))
