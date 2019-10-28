@@ -10,6 +10,11 @@
   []
   (:cubeurl (:details (qp.store/database))))
 
+(defn- get-cube-auth-token
+  "Returns the authentication token for the Cube.js API."
+  []
+  (:authtoken (:details (qp.store/database))))
+
 (defn- extract-fields
   [rows fields]
   (for [row rows]
@@ -23,6 +28,7 @@
   (loop []
     (let [resp (client/request {:method         :get
                                 :url            url
+                                :headers        {:authorization (get-cube-auth-token)}
                                 :query-params   {"query" query}
                                 :accept         :json
                                 :as             :json})]
