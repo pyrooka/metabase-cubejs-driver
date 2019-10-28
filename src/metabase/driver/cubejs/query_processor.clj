@@ -5,13 +5,12 @@
             [cheshire.core :as json]
             [clj-http.client :as client]))
 
-(defn get-cube-api-url
+(defn- get-cube-api-url
   "Returns the Cube.js API URL from the config."
   []
-  (let [database (qp.store/database)]
-    (:cubeurl (:details database))))
+  (:cubeurl (:details (qp.store/database))))
 
-(defn extract-fields
+(defn- extract-fields
   [rows fields]
   (for [row rows]
     (for [field fields]
