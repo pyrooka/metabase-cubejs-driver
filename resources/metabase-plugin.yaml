@@ -12,6 +12,10 @@ driver:
       display-name: URL
       type: string
       default: "http://cubejs:4000/cubejs-api/"
+    - name: authtoken
+      display-name: Auth token (optional)
+      type: string
+      default: ""
 init:
   - step: load-namespace
     namespace: metabase.driver.cubejs

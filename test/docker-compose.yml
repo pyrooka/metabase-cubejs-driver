@@ -16,6 +16,8 @@ services:
       - CUBEJS_DB_USER=postgres
       - CUBEJS_DB_PASS=postgres
       - CUBEJS_DB_TYPE=postgres
+      #- NODE_ENV=production
+      #- CUBEJS_CACHE_AND_QUEUE_DRIVER=memory
     depends_on:
       - db
     ports:
