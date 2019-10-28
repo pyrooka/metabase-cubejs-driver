@@ -15,15 +15,15 @@ Cube.js driver for Metabase.
 Download from the [releases](https://github.com/lili-data/metabase-cubejs-driver/releases).
 ### Build with Docker
 1. Go to the `build` directory
-2. Build the container first: `./image.sh`
-3. Build the driver in the newly created container: `./driver.sh`  
+2. Build the docker image: `./image.sh`
+3. Build the driver in a container: `./driver.sh`  
    (this will create a `target` directory in the project root)
 
 ### Build without Docker
 [Use this guide.](https://github.com/tlrobinson/metabase-http-driver/blob/master/README.md#building-the-driver)
 
 ## Copy to your Metabase plugins
-`cp your-driver.jar /path/to/metabase/plugins/`  
+`cp cubejs.metabase-driver.jar /path/to/metabase/plugins/`  
 Note: you have to restart Metabase to load new plugins
 
 # Usage
