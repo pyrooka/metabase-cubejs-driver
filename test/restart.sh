@@ -1,8 +1,8 @@
 # Build the driver again.
-../build/driver.sh
+../build/driver.sh &&
 
 # Copy our fresh new driver.
-./copy.sh
+./copy.sh &&
 
 # Run the containers.
 docker-compose up
