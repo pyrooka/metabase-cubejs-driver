@@ -5,9 +5,9 @@
             [metabase.mbql.util :as mbql.util]
             [metabase.query-processor.store :as qp.store]
             [metabase.models.metric :as metric :refer [Metric]]
+            [metabase.driver.cubejs.utils :as cube.utils]
             [metabase.driver.cubejs.query-processor :as cubejs.qp]
-            [toucan.db :as db]
-            [clj-http.client :as client]))
+            [toucan.db :as db]))
 
 ;; Is there any better? https://github.com/metabase/metabase/blob/master/src/metabase/types.clj#L81
 (def cubejs-time->metabase-type
@@ -35,11 +35,7 @@
 (defn- get-cubes
   "Get all the cubes from the Cube.js REST API."
   [database]
-  (let [url    (str (:cubeurl (:details database)) "v1/meta")
-        resp   (client/request {:method        :get
-                                :url           url
-                                :accept        :json
-                                :as            :json})
+  (let [resp   (cube.utils/make-request "v1/meta" nil database)
         body   (:body resp)]
     (:cubes body)))
 
