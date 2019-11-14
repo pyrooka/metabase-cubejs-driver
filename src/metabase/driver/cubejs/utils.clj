@@ -20,6 +20,7 @@
         url        (str api-url resource)
         auth-token (if (nil? database) (get-cube-auth-token) (:authtoken (:details database)))]
     (loop []
+      (log/debug "Request:" url auth-token query)
       (let [resp (client/request {:method         :get
                                   :url            url
                                   :headers        {:authorization auth-token}
