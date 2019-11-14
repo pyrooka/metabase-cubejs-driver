@@ -1,5 +1,6 @@
 (ns metabase.driver.cubejs.utils
-  (:require [metabase.query-processor.store :as qp.store]
+  (:require [clojure.tools.logging :as log]
+            [metabase.query-processor.store :as qp.store]
             [clj-http.client :as client]))
 
 (defn- get-cube-api-url
