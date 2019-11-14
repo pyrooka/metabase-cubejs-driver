@@ -6,7 +6,8 @@
 (defn- get-cube-api-url
   "Returns the Cube.js API URL from the config."
   []
-  (:cubeurl (:details (qp.store/database))))
+  (let [url (:cubeurl (:details (qp.store/database)))]
+    (if-not (= (last url) \/) (str url "/") url))) ; Check the ending slash.
 
 (defn- get-cube-auth-token
   "Returns the authentication token for the Cube.js API."
