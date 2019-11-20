@@ -3,6 +3,21 @@
             [metabase.query-processor.store :as qp.store]
             [clj-http.client :as client]))
 
+
+;; Is there any better? https://github.com/metabase/metabase/blob/master/src/metabase/types.clj#L81
+(def cubejs-time->metabase-type
+  :type/DateTime)
+
+(def json-type->base-type
+  {:string  :type/Text
+   :number  :type/Number
+   :time    cubejs-time->metabase-type})
+
+(defn string->number
+  "Convert the string to Long or Double."
+  [string]
+  (if (.contains string ".") (Double/parseDouble string) (Long/parseLong string)))
+
 (defn- get-cube-api-url
   "Returns the Cube.js API URL from the config."
   []

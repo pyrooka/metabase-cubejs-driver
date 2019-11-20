@@ -9,9 +9,6 @@
             [metabase.driver.cubejs.query-processor :as cubejs.qp]
             [toucan.db :as db]))
 
-;; Is there any better? https://github.com/metabase/metabase/blob/master/src/metabase/types.clj#L81
-(def cubejs-time->metabase-type
-  :type/DateTime)
 
 ;; In case of a full table query the granularity is :default so we have to change it manually.
 (def default-cubejs-granularity
@@ -26,11 +23,6 @@
   "Checks is the given measure already in the metrics."
   [measure metrics]
   (some (fn [metric] (= (:name measure) (:name metric))) metrics))
-
-(def json-type->base-type
-  {:string  :type/Text
-   :number  :type/Float
-   :time    cubejs-time->metabase-type})
 
 (defn- get-cubes
   "Get all the cubes from the Cube.js REST API."
@@ -47,8 +39,8 @@
      {:name          (:name field)
       :database-type (:type field)
       :field-comment type
-      :base-type     (json-type->base-type (keyword (:type field)))}
-     (if (= (:type field) cubejs-time->metabase-type) {:special-type :type/CreationTime}))))
+      :base-type     (cube.utils/json-type->base-type (keyword (:type field)))}
+     (if (= (:type field) cube.utils/cubejs-time->metabase-type) {:special-type :type/CreationTime}))))
 
 (defn- get-field
   "Returns the name and the type for the given field ID."
