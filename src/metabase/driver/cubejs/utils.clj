@@ -21,8 +21,12 @@
 (defn- get-cube-api-url
   "Returns the Cube.js API URL from the config."
   []
-  (let [url (:cubeurl (:details (qp.store/database)))]
-    (if-not (= (last url) \/) (str url "/") url))) ; Check the ending slash.
+  (:cubeurl (:details (qp.store/database))))
+
+(defn- check-url-ending-slash
+  "If the last character of the URL is not a '/' append one."
+  [url]
+  (if-not (= (last url) \/) (str url "/") url))
 
 (defn- get-cube-auth-token
   "Returns the authentication token for the Cube.js API."
@@ -34,7 +38,7 @@
    If the response is 200 with a 'Continue wait' error message, try again."
   [resource query database]
   (let [api-url    (if (nil? database) (get-cube-api-url) (:cubeurl (:details database)))
-        url        (str api-url resource)
+        url        (str (check-url-ending-slash api-url) resource)
         auth-token (if (nil? database) (get-cube-auth-token) (:authtoken (:details database)))]
     (loop []
       (log/debug "Request:" url auth-token query)
