@@ -39,6 +39,7 @@
      {:name          (:name field)
       :database-type (:type field)
       :field-comment type
+      :description   (:description field)
       :base-type     (cube.utils/json-type->base-type (keyword (:type field)))}
      (if (= (:type field) cube.utils/cubejs-time->metabase-type) {:special-type :type/CreationTime}))))
 
@@ -150,13 +151,14 @@
                     :table_id    (:id table)
                     :creator_id  1 ; Use the first (creator, admin) user at the moment.) Any better solution?
                     :name        (:name measure)
-                    :description "Created from code"
+                    :description (:description measure)
                     :definition  {:source-table (:id table)
                                   :aggregation  [[:count]]})))
     {:name   (:name cube)
      :schema (:schema cube)
      ; Segments are currently unsupported.
-     :fields (set (concat measures dimensions))}))
+     ;; Remove the description key from the fields then create a set.
+     :fields (set (map #(dissoc % :description) (concat measures dimensions)))}))
 
 (defmethod driver/mbql->native :cubejs [_ query]
   (log/debug "MBQL:" query)

@@ -9,7 +9,8 @@ cube(`Characters`, {
     measures: {
 
       numberOfUsers: {
-        type: "count",
+        type: `count`,
+        description: `Number of the users`,
       },
     },
 
@@ -24,25 +25,27 @@ cube(`Characters`, {
       firstname: {
         sql: `firstname`,
         type: `string`,
-        title: `First name`
+        title: `First name`,
+        description: `First name of the character`,
       },
 
       lastname: {
         sql: `lastname`,
         type: `string`,
-        title: `Last name`
+        title: `Last name`,
+        description: `Last name of the character`,
       },
 
       active: {
         sql: `active`,
         type: `string`,
-        title: `Is the user active?`
+        description: `Is the user active?`
       },
 
       birth: {
         sql: `birth`,
         type: `time`,
-        title: `Date of birth`
+        description: `Date of birth`
       }
     }
   });
