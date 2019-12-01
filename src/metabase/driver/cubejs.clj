@@ -130,9 +130,8 @@
 
 (defmethod driver/supports? [:cubejs :basic-aggregations] [_ _] false)
 
-(defmethod driver/can-connect? :cubejs [_ _]
-  ;; TODO: Would be better to implement a simple GET request to check the API availability.
-  true)
+(defmethod driver/can-connect? :cubejs [_ details]
+  (if (nil? (get-cubes {:details details})) false true))
 
 (defmethod driver/describe-database :cubejs [_ database]
   {:tables (set (for [cube (get-cubes database)]
