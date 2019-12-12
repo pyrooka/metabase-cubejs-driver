@@ -12,6 +12,12 @@ cube(`Characters`, {
         type: `count`,
         description: `Number of the users`,
       },
+
+      uniqueFirstNames: {
+        sql: `firstname`,
+        type: `countDistinct`,
+        description: `Uniq first names`,
+      },
     },
 
     dimensions: {
