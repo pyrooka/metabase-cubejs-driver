@@ -2,7 +2,8 @@
   "Cube.js REST API driver."
   (:require [clojure.tools.logging :as log]
             [metabase.driver :as driver]
-            [metabase.mbql.util :as mbql.util]
+            [metabase.util.date :as du]
+            [metabase.mbql.util :as mbql.u]
             [metabase.query-processor.store :as qp.store]
             [metabase.models.metric :as metric :refer [Metric]]
             [metabase.driver.cubejs.utils :as cube.utils]
@@ -71,25 +72,133 @@
   [query]
   (let [order-by (:order-by query)]
     ;; Iterate over the order-by fields.
-    (into {} (for [[direction [field-type value]] order-by] (
-                                                             ;; Get the name of the field based on its type..
+    (into {} (for [[direction [field-type value]] order-by] (;; Get the name of the field based on its type..
                                                              let [fieldname (case field-type
                                                                               :field-id       (first (get-field [field-type value]))
-                                                                              :aggregation    (nth (mbql.util/match query [:aggregation-options _ {:display-name name}] name) value)
+                                                                              :aggregation    (nth (mbql.u/match query [:aggregation-options _ {:display-name name}] name) value)
                                                                               :datetime-field (first (get-field value))
                                                                               nil)]
                                                               {fieldname direction})))))
+
+
+;;; ------------------------------------------------ field processing ------------------------------------------------
+
+(defmulti ^:private ->rvalue
+  "Convert something to an 'rvalue`, i.e. a value that could be used in the right-hand side of an assignment expression.
+    (let [x 100] ...) ; x is the lvalue; 100 is the rvalue"
+  {:arglists '([x])}
+  mbql.u/dispatch-by-clause-name-or-class)
+
+(defmethod ->rvalue nil
+  [_]
+  nil)
+
+(defmethod ->rvalue Object
+  [this]
+  (conj [] (str this))) ; in Cube.js filter value is an array
+
+(defmethod ->rvalue :field-id
+  [[_ field-id]]
+  (:name (qp.store/field field-id)))
+
+(defmethod ->rvalue :datetime-field
+  [[_ field]]
+  (->rvalue field))
+
+(defmethod ->rvalue :relative-datetime
+  [[_ amount unit]]
+  (->rvalue [:absolute-datetime (du/relative-date (or unit :day) amount) unit]))
+
+(defmethod ->rvalue :absolute-datetime
+  [[_ t]]
+  (->rvalue t))
+
+(defmethod ->rvalue :value
+  [[_ value]]
+  (->rvalue value))
+
+;;; ----------------------------------------------------- filter -----------------------------------------------------
+
+(defmulti ^:private parse-filter first)
+
+(defmethod parse-filter nil [] nil)
+
+(defmethod parse-filter :=  [[_ field value]]
+  (if-let [rvalue (->rvalue value)]
+    {:member (->rvalue field) :operator "equals" :values rvalue}
+    (parse-filter [:is-null field])))
+
+(defmethod parse-filter :!= [[_ field value]]
+  (if-let [rvalue (->rvalue value)]
+    {:member (->rvalue field) :operator "notEquals" :values rvalue}
+    (parse-filter [:not-null field])))
+
+(defmethod parse-filter :<  [[_ field value]] {:member (->rvalue field) :operator "lt" :values (->rvalue value)})
+(defmethod parse-filter :>  [[_ field value]] {:member (->rvalue field) :operator "gt" :values (->rvalue value)})
+(defmethod parse-filter :<= [[_ field value]] {:member (->rvalue field) :operator "lte" :values (->rvalue value)})
+(defmethod parse-filter :>= [[_ field value]] {:member (->rvalue field) :operator "gte" :values (->rvalue value)})
+
+(defmethod parse-filter :between [[_ field min-val max-val]] [{:member (->rvalue field) :operator "gte" :values (->rvalue min-val)}
+                                                              {:member (->rvalue field) :operator "lte" :values (->rvalue max-val)}])
+
+;; Starts/ends-with not implemented in Cube.js yet.
+(defmethod parse-filter :starts-with [] nil)
+(defmethod parse-filter :ends-with   [] nil)
+
+(defmethod parse-filter :contains          [[_ field value]] {:member (->rvalue field) :operator "contains" :values (->rvalue value)})
+(defmethod parse-filter :does-not-contains [[_ field value]] {:member (->rvalue field) :operator "notContains" :values (->rvalue value)})
+
+(defmethod parse-filter :not-null [[_ field]] {:member (->rvalue field) :operator "set"})
+(defmethod parse-filter :is-null [[_ field]] {:member (->rvalue field) :operator "notSet"})
+
+(defmethod parse-filter :and [[_ & args]] (mapv parse-filter args))
+(defmethod parse-filter :or  [[_ & args]]
+  (let [filters (mapv parse-filter args)]
+    (reduce (fn [result filter]
+              (update result :values into (:values filter)))
+            filters)))
+
+;; Use this code if different fields can be in a single or clause, because this will check and match them.
+;; NOTE: the return value is a vector so we have to handle it somehow.
+;;(defmethod parse-filter :or  [[_ & args]]
+;;  (let [filters (mapv parse-filter args)]
+;;    (reduce (fn [result filter]
+;;              (if (some #(and (= (:member %) (:member filter)) (= (:operator %) (:operator filter))) result)
+;;                (mapv #(if (and (= (:member %) (:member filter)) (= (:operator %) (:operator filter))) (update % :values into (:values filter))) result)
+;;                (conj result filter)))
+;;            []
+;;            filters)))
+
+(defmulti ^:private negate first)
+
+(defmethod negate :default [clause]
+  (mbql.u/negate-filter-clause clause))
+
+(defmethod negate :and [[_ & subclause]] nil)
+(defmethod negate :or  [[_ & subclause]] nil)
+
+(defmethod negate :contains [[_ field v opts]] [:does-not-contains field v opts])
+
+(defmethod parse-filter :not [[_ subclause]] (parse-filter (negate subclause)))
+
+(defn- transform-filters
+  "Transform the MBQL filters to Cube.js filters."
+  [query]
+  (let [filter  (:filter query)
+        filters (if filter (parse-filter filter))]
+    (if (vector? filters) filters (if filters (conj [] filters)))))
+
 
 (defn- get-measures
   "Get the measure fields from a MBQL query."
   [query]
   (concat
     ;; The simplest case is there are a list of fields in the query.
-   (let [field-ids   (mbql.util/match (:fields query) [:field-id id] id)
+   (let [field-ids   (mbql.u/match (:fields query) [:field-id id] id)
          field-names (get-field-names-by-type field-ids "measure")]
      field-names)
    ;; Another case if we use metrics so Metabase creates the query for us.
-   (mbql.util/match query [:aggregation-options _ {:display-name name}] name)))
+   (mbql.u/match query [:aggregation-options _ {:display-name name}] name)))
 
 (defn- get-dimensions
   "Get the dimension fields from a MBQL query."
@@ -106,7 +215,7 @@
 (defn- get-time-dimensions
   "Get the time dimensions from the MBQL query."
   [query]
-  (let [fields       (mbql.util/match query [:datetime-field [:field-id id] gran] (list id (mbql-granularity->cubejs-granularity gran)))
+  (let [fields       (mbql.u/match query [:datetime-field [:field-id id] gran] (list id (mbql-granularity->cubejs-granularity gran)))
         named-fields (for [field fields] (list (:name (qp.store/field (first field))) (second field)))]
     (if named-fields (set named-fields))))
 
@@ -116,16 +225,18 @@
   (let [measures        (get-measures query)
         dimensions      (get-dimensions query)
         time-dimensions (get-time-dimensions query)
+        filters         (transform-filters query)
         order-by        (transform-orderby query)
         limit           (:limit query)]
     (merge
      (if (empty? measures) nil {:measures measures})
      (if (empty? dimensions) nil {:dimensions dimensions})
      (if (empty? time-dimensions) nil {:timeDimensions (for [td time-dimensions] {:dimension (first td), :granularity (second td)})})
+     (if (empty? filters) nil {:filters filters})
      (if (empty? order-by) nil {:order order-by})
      (if limit {:limit limit}))))
 
-;;; Implement Metabase driver functions.
+;;; ---------------------------------------------- Metabase functions ------------------------------------------------
 
 (driver/register! :cubejs)
 
