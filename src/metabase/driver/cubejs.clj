@@ -2,7 +2,7 @@
   "Cube.js REST API driver."
   (:require [clojure.tools.logging :as log]
             [metabase.driver :as driver]
-            [metabase.util.date :as du]
+            [metabase.util.date-2 :as u.date]
             [metabase.mbql.util :as mbql.u]
             [metabase.query-processor.store :as qp.store]
             [metabase.models.metric :as metric :refer [Metric]]
@@ -107,11 +107,11 @@
 
 (defmethod ->rvalue :relative-datetime
   [[_ amount unit]]
-  (->rvalue [:absolute-datetime (du/relative-date (or unit :day) amount) unit]))
+  (->rvalue [:absolute-datetime (u.date/add (or unit :day) amount) unit]))
 
 (defmethod ->rvalue :absolute-datetime
   [[_ t]]
-  (->rvalue t))
+  (->rvalue (u.date/format t)))
 
 (defmethod ->rvalue :value
   [[_ value]]
