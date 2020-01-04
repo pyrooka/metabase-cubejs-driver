@@ -44,7 +44,7 @@ cube(`Characters`, {
 
       active: {
         sql: `active`,
-        type: `string`,
+        type: `boolean`,
         description: `Is the user active?`
       },
 
