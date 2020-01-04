@@ -36,7 +36,7 @@
 
 (defn execute-http-request [native-query]
   (log/debug "Native:" native-query)
-  (let [query         (if (:query native-query) (if (:mbql? native-query) (json/generate-string (:query native-query)) (:query native-query)))
+  (let [query         (if (:mbql? native-query) (json/generate-string (:query native-query)) (:query native-query))
         resp          (cube.utils/make-request "v1/load" query nil)
         rows          (:data (:body resp))
         annotation    (:annotation (:body resp))
