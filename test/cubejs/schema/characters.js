@@ -12,6 +12,12 @@ cube(`Characters`, {
         type: `count`,
         description: `Number of the users`,
       },
+
+      uniqueFirstNames: {
+        sql: `firstname`,
+        type: `countDistinct`,
+        description: `Uniq first names`,
+      },
     },
 
     dimensions: {
@@ -38,7 +44,7 @@ cube(`Characters`, {
 
       active: {
         sql: `active`,
-        type: `string`,
+        type: `boolean`,
         description: `Is the user active?`
       },
 

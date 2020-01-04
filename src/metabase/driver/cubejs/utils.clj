@@ -11,6 +11,7 @@
 (def json-type->base-type
   {:string  :type/Text
    :number  :type/Number
+   :boolean :type/Boolean
    :time    cubejs-time->metabase-type})
 
 (defn string->number

@@ -1,5 +1,5 @@
 # cubejs-metabase-driver
-Cube.js driver for Metabase.
+Cube.js driver for Metabase v0.34.0 or newer.
 
 **NOTE: The driver is under development so expect some bugs and missing features. If you find one please create an issue.**
 

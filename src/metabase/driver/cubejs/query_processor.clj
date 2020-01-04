@@ -1,6 +1,7 @@
 (ns metabase.driver.cubejs.query-processor
   (:refer-clojure :exclude [==])
   (:require [flatland.ordered.map :as ordered-map]
+            [clojure.tools.logging :as log]
             [cheshire.core :as json]
             [metabase.driver.cubejs.utils :as cube.utils]))
 
@@ -34,7 +35,8 @@
       (get row field))))
 
 (defn execute-http-request [native-query]
-  (let [query         (if (:query native-query) (if (:mbql? native-query) (json/generate-string (:query native-query)) (:query native-query)))
+  (log/debug "Native:" native-query)
+  (let [query         (if (:mbql? native-query) (json/generate-string (:query native-query)) (:query native-query))
         resp          (cube.utils/make-request "v1/load" query nil)
         rows          (:data (:body resp))
         annotation    (:annotation (:body resp))
