@@ -186,7 +186,10 @@
   [query]
   (let [filter  (:filter query)
         filters (if filter (parse-filter filter))]
-    (if (vector? filters) filters (if filters (conj [] filters)))))
+    (flatten
+     (if (vector? filters)
+       filters
+       (if filters (conj [] filters))))))
 
 
 (defn- get-measures
@@ -215,7 +218,8 @@
 (defn- get-time-dimensions
   "Get the time dimensions from the MBQL query."
   [query]
-  (let [fields       (mbql.u/match query [:datetime-field [:field-id id] gran] (list id (mbql-granularity->cubejs-granularity gran)))
+  (let [query        (dissoc query :filter :order-by) ; TODO: fix this quick and dirty hack!!!
+        fields       (mbql.u/match query [:datetime-field [:field-id id] gran] (list id (mbql-granularity->cubejs-granularity gran)))
         named-fields (for [field fields] (list (:name (qp.store/field (first field))) (second field)))]
     (if named-fields (set named-fields))))
 
