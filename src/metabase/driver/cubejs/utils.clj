@@ -17,7 +17,12 @@
 (defn string->number
   "Convert the string to Long or Double."
   [string]
-  (if (.contains string ".") (Double/parseDouble string) (Long/parseLong string)))
+  ;; Sometimes we got `nil` as a number, so check it. Maybe a try-catch will be better someday.
+  (if (nil? string)
+    nil
+    (if (.contains string ".")
+      (Double/parseDouble string)
+      (Long/parseLong string))))
 
 (defn- get-cube-api-url
   "Returns the Cube.js API URL from the config."
