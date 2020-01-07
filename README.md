@@ -14,10 +14,8 @@ Cube.js driver for Metabase v0.34.0 or newer.
 ### Download
 Download from the [releases](https://github.com/lili-data/metabase-cubejs-driver/releases).
 ### Build with Docker
-1. Go to the `build` directory
-2. Build the docker image: `./image.sh`
-3. Build the driver in a container: `./driver.sh`  
-   (this will create a `target` directory in the project root)
+1. Create the docker images: `make docker`
+2. Build the driver: `make build`
 
 ### Build without Docker
 [Use this guide.](https://github.com/tlrobinson/metabase-http-driver/blob/master/README.md#building-the-driver)
@@ -38,11 +36,8 @@ Note: you have to restart Metabase to load new plugins
 [v1.0.0](https://github.com/lili-data/metabase-cubejs-driver/milestone/1)
 
 ## Testing the driver
-1. Go to the `test` directory
-2. Build the Cube.js image: `./build.sh`
-3. Set the environment variables in the `cubejs.env` file
-4. Copy the already built driver to the `driver` dir: `./copy.sh`
-5. Start with Docker Compose: `docker-compose up`
+1. Create the docker images: `make docker`
+2. Start a whole test environment: `make start`
 
 # Contributing
 - Any type of contributions are welcomed
