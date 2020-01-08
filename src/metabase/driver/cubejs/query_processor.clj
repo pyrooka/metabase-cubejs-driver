@@ -2,6 +2,7 @@
   (:refer-clojure :exclude [==])
   (:require [flatland.ordered.map :as ordered-map]
             [clojure.tools.logging :as log]
+            [clojure.set :as set]
             [cheshire.core :as json]
             [metabase.driver.cubejs.utils :as cube.utils]))
 
@@ -27,13 +28,6 @@
   (let [num-cols  (map first (filter #(= (second %) :type/Number) types))]
     (map #(update-row-values % num-cols) rows)))
 
-(defn- extract-fields
-  "Extract the values from the map and returns them as a list."
-  [rows fields]
-  (for [row rows]
-    (for [field fields]
-      (get row field))))
-
 (defn execute-http-request [native-query]
   (log/debug "Native:" native-query)
   (let [query         (if (:mbql? native-query) (json/generate-string (:query native-query)) (:query native-query))
@@ -42,6 +36,5 @@
         annotation    (:annotation (:body resp))
         types         (get-types annotation)
         rows          (convert-values rows types)
-        cols          (if (:aggregation? native-query) (keys (first rows)))
-        result        (if (:aggregation? native-query) {:columns cols :rows (extract-fields rows cols)} {:rows (for [row rows] (into (ordered-map/ordered-map) row))})]
+        result        {:rows (for [row rows] (into (ordered-map/ordered-map) (set/rename-keys row (:measure-aliases native-query))))}]
     result))

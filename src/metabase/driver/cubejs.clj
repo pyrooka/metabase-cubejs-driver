@@ -277,10 +277,11 @@
 
 (defmethod driver/mbql->native :cubejs [_ query]
   (log/debug "MBQL:" query)
-  (let [base-query  (mbql->cubejs (:query query))]
-    {:query        base-query
-     :aggregation? (if-not (empty? (:aggregation (:query query))) true)
-     :mbql?        true}))
+  (let [base-query    (:query query)
+        native-query  (mbql->cubejs base-query)]
+    {:query            native-query
+     :measure-aliases  (into {} (for [[_ _ names] (:aggregation base-query)] {(keyword (:display-name names)) (keyword (:name names))}))
+     :mbql?            true}))
 
 (defmethod driver/execute-query :cubejs [_ {native-query :native}]
   (cubejs.qp/execute-http-request native-query))
