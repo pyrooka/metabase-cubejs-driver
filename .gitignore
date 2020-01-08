@@ -3,3 +3,6 @@
 
 # Builds
 *.jar
+
+# Clojure dependency file
+*.edn
