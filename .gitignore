@@ -3,7 +3,3 @@
 
 # Builds
 *.jar
-
-# Docker volumes
-/test/driver
-/test/metabase-data
