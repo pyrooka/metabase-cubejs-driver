@@ -7,6 +7,11 @@ start: build
 	@cp cubejs.metabase-driver.jar ${TESTENV}/driver
 	@cd ${TESTENV} && docker-compose up
 
+## stop: Stops running test environment containers
+.PHONY: stop
+stop:
+	@cd ${TESTENV} && docker-compose stop
+
 ## docker: Builds the docker images for the driver building and the testing
 .PHONY: docker
 docker:
@@ -18,7 +23,7 @@ docker:
 ## build: Builds the driver
 .PHONY: build
 build:
-	@docker run --rm --name metabase-driver-builder -v $(shell pwd):/driver/metabase-cubejs-driver metabase-driver-builder /bin/sh -c "lein clean; DEBUG=1 LEIN_SNAPSHOTS_IN_RELEASE=true lein uberjar"
+	@docker run --rm -v $(shell pwd):/driver/metabase-cubejs-driver metabase-driver-builder /bin/sh -c "lein clean; DEBUG=1 LEIN_SNAPSHOTS_IN_RELEASE=true lein uberjar"
 	@cp target/uberjar/cubejs.metabase-driver.jar ./
 
 ## repl: Starts a local REPL server for development
