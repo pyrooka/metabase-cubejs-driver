@@ -6,3 +6,6 @@
 
 # Clojure dependency file
 *.edn
+
+# Leiningen repl history
+.lein-repl-history
