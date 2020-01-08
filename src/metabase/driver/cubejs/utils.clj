@@ -15,14 +15,10 @@
    :time    cubejs-time->metabase-type})
 
 (defn string->number
-  "Convert the string to Long or Double."
+  "Convert the string to a number."
   [string]
-  ;; Sometimes we got `nil` as a number, so check it. Maybe a try-catch will be better someday.
-  (if (nil? string)
-    nil
-    (if (.contains string ".")
-      (Double/parseDouble string)
-      (Long/parseLong string))))
+  (let [val (read-string string)]
+    (if (number? val) val nil)))
 
 (defn- get-cube-api-url
   "Returns the Cube.js API URL from the config."
