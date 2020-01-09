@@ -1,7 +1,6 @@
 (ns metabase.driver.cubejs.query-processor
   (:refer-clojure :exclude [==])
   (:require [flatland.ordered.map :as ordered-map]
-            [clojure.tools.logging :as log]
             [clojure.set :as set]
             [cheshire.core :as json]
             [metabase.driver.cubejs.utils :as cube.utils]))
@@ -29,7 +28,6 @@
     (map #(update-row-values % num-cols) rows)))
 
 (defn execute-http-request [native-query]
-  (log/debug "Native:" native-query)
   (let [query         (if (:mbql? native-query) (json/generate-string (:query native-query)) (:query native-query))
         resp          (cube.utils/make-request "v1/load" query nil)
         rows          (:data (:body resp))

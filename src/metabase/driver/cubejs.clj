@@ -284,4 +284,5 @@
      :mbql?            true}))
 
 (defmethod driver/execute-query :cubejs [_ {native-query :native}]
+  (log/debug "Native:" native-query)
   (cubejs.qp/execute-http-request native-query))
