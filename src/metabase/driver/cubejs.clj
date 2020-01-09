@@ -11,14 +11,15 @@
             [toucan.db :as db]))
 
 
-;; In case of a full table query the granularity is :default so we have to change it manually.
-(def default-cubejs-granularity
-  :day)
-
-(defn- mbql-granularity->cubejs-granularity
-  "Set the correct granularity for the Cube.js query."
-  [granularity]
-  (if (= granularity :default) default-cubejs-granularity granularity))
+(def mbql-granularity->cubejs-granularity
+  {:default :day
+   :year    :year
+   :month   :month
+   :week    :week
+   :day     :day
+   :hour    :hour
+   :minute  :minute
+   :second  :second})
 
 (defn- measure-in-metrics?
   "Checks is the given measure already in the metrics."
@@ -29,8 +30,9 @@
   "Get all the cubes from the Cube.js REST API."
   [database]
   (let [resp   (cube.utils/make-request "v1/meta" nil database)
-        body   (:body resp)]
-    (:cubes body)))
+        body   (:body resp)
+        cubes  (:cubes body)]
+    cubes))
 
 (defn- process-fields
   "Returns the processed fields from the 'measure' or 'dimension' block. Description must be 'measure' or 'dimension'."
@@ -219,7 +221,7 @@
   "Get the time dimensions from the MBQL query."
   [query]
   (let [query        (dissoc query :filter :order-by) ; TODO: fix this quick and dirty hack!!!
-        fields       (mbql.u/match query [:datetime-field [:field-id id] gran] (list id (mbql-granularity->cubejs-granularity gran)))
+        fields       (mbql.u/match query [:datetime-field [:field-id id] gran] (list id (get mbql-granularity->cubejs-granularity gran (throw (Exception. (str (name gran) " granularity not supported by Cube.js"))))))
         named-fields (for [field fields] (list (:name (qp.store/field (first field))) (second field)))]
     (if named-fields (set named-fields))))
 
