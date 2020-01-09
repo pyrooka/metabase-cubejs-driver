@@ -43,7 +43,7 @@
       :database-type (:type field)
       :field-comment type
       :description   (:description field)
-      :base-type     (cube.utils/json-type->base-type (keyword (:type field)))}
+      :base-type     (cube.utils/cubejs-type->base-type (keyword (:type field)))}
      (if (= (:type field) cube.utils/cubejs-time->metabase-type) {:special-type :type/CreationTime}))))
 
 (defn- get-field

@@ -8,7 +8,7 @@
 (def cubejs-time->metabase-type
   :type/DateTime)
 
-(def json-type->base-type
+(def cubejs-type->base-type
   {:string  :type/Text
    :number  :type/Number
    :boolean :type/Boolean

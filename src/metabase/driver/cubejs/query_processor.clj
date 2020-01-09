@@ -12,7 +12,7 @@
         (for [fields (vals annotation)]
           (into {}
                 (for [[name info] fields]
-                  {name ((keyword (:type info)) cube.utils/json-type->base-type)})))))
+                  {name ((keyword (:type info)) cube.utils/cubejs-type->base-type)})))))
 
 (defn- update-row-values
   [row cols]
