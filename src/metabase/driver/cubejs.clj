@@ -48,8 +48,8 @@
 
 (defn- get-field
   "Returns the name and the type for the given field ID."
-  [field]
-  (let [field (if (= (first field) :field-id) (qp.store/field (second field)))
+  [[_ id]]
+  (let [field (qp.store/field id)
         name  (:name field)
         type  (:description field)]
     (list name type)))
@@ -62,7 +62,7 @@
     result))
 
 (defn- get-field-names-by-type
-  "Return the name of the given list of field IDs filtered by the type 'measure or dimension),"
+  "Return the name of the given list of field IDs filtered by the type 'measure' or 'dimension'"
   [field-ids type]
   (let [fields   (for [id field-ids] (qp.store/field id))
         filtered (filter #(= (:description %) type) fields)
