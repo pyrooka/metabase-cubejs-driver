@@ -5,14 +5,14 @@
 
 
 ;; Is there any better? https://github.com/metabase/metabase/blob/master/src/metabase/types.clj#L81
-(def cubejs-time->metabase-type
+(def cubejs-time->metabase-time
   :type/DateTime)
 
 (def cubejs-type->base-type
   {:string  :type/Text
    :number  :type/Number
    :boolean :type/Boolean
-   :time    cubejs-time->metabase-type})
+   :time    cubejs-time->metabase-time})
 
 (defn string->number
   "Convert the string to a number."

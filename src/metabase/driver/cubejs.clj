@@ -23,8 +23,8 @@
 
 (defn- measure-in-metrics?
   "Checks is the given measure already in the metrics."
-  [measure metrics]
-  (some (fn [metric] (= (:name measure) (:name metric))) metrics))
+  [metrics measure]
+  (some #(= (:name %) measure) metrics))
 
 (defn- get-cubes
   "Get all the cubes from the Cube.js REST API."
@@ -44,7 +44,7 @@
       :field-comment type
       :description   (:description field)
       :base-type     (cube.utils/cubejs-type->base-type (keyword (:type field)))}
-     (if (= (:type field) cube.utils/cubejs-time->metabase-type) {:special-type :type/CreationTime}))))
+     (if (= (:type field) cube.utils/cubejs-time->metabase-time) {:special-type :type/CreationTime}))))
 
 (defn- get-field
   "Returns the name and the type for the given field ID."
@@ -263,7 +263,7 @@
         dimensions (process-fields (:dimensions cube) "dimension")
         metrics    (metric/retrieve-metrics (:id table) :all)]
     (doseq [measure measures]
-      (if-not (measure-in-metrics? measure metrics)
+      (if-not (measure-in-metrics? metrics (:name measure))
         (db/insert! Metric
                     :table_id    (:id table)
                     :creator_id  1 ; Use the first (creator, admin) user at the moment.) Any better solution?
