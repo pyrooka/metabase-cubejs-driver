@@ -18,7 +18,7 @@
   [row cols]
   (reduce-kv
    (fn [row key val]
-     (assoc row key (if (some #(= key %) cols) (cube.utils/string->number val) val))) {} row))
+     (assoc row key (if (some #(= key %) cols) (cube.utils/cubejs-type->metabase-type val) val))) {} row))
 
 (defn- convert-values
   "Convert the values in the rows to the correct type."

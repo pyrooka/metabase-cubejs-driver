@@ -14,7 +14,7 @@
    :boolean :type/Boolean
    :time    cubejs-time->metabase-time})
 
-(defn string->number
+(defn cubejs-type->metabase-type
   "Convert the string to a number."
   [string]
   (let [val (read-string string)]
