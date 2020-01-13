@@ -5,21 +5,28 @@
             [metabase.util.date-2 :as u.date]
             [metabase.mbql.util :as mbql.u]
             [metabase.query-processor.store :as qp.store]
-            [metabase.models.metric :as metric :refer [Metric]]
+            [metabase.models
+             [metric :as metric :refer [Metric]]
+             [table :as table :refer [Table]]]
             [metabase.driver.cubejs.utils :as cube.utils]
             [metabase.driver.cubejs.query-processor :as cubejs.qp]
             [toucan.db :as db]))
 
 
-(def mbql-granularity->cubejs-granularity
-  {:default :day
-   :year    :year
-   :month   :month
-   :week    :week
-   :day     :day
-   :hour    :hour
-   :minute  :minute
-   :second  :second})
+(defn ^:private mbql-granularity->cubejs-granularity
+  [granularity]
+  (let [cubejs-granularity (granularity {:default :day
+                                         :year    :year
+                                         :month   :month
+                                         :week    :week
+                                         :day     :day
+                                         :hour    :hour
+                                         :minute  :minute
+                                         :second  :second})]
+    (if (nil? cubejs-granularity)
+      (throw (Exception. (str (name granularity) " granularity not supported by Cube.js")))
+      cubejs-granularity))
+  )
 
 (defn- measure-in-metrics?
   "Checks is the given measure already in the metrics."
@@ -33,6 +40,18 @@
         body   (:body resp)
         cubes  (:cubes body)]
     cubes))
+
+;;; ----------------------------------------------------- cache ------------------------------------------------------
+
+(def ^:dynamic ^:private *query* nil)
+
+(defn ^:private do-with-cache
+  "Execute the function with bindings to the cache."
+  [f query]
+  (binding [*query*  query]
+    (f query)))
+
+;;; ----------------------------------------------------- common -----------------------------------------------------
 
 (defn- process-fields
   "Returns the processed fields from the 'measure' or 'dimension' block. Description must be 'measure' or 'dimension'."
@@ -69,22 +88,6 @@
         names    (for [field filtered] (:name field))]
     names))
 
-(defn- transform-orderby
-  "Transform the MBQL order by to a Cube.js order."
-  [query]
-  (let [order-by (:order-by query)]
-    ;; Iterate over the order-by fields.
-    (into {} (for [[direction [field-type value]] order-by] (;; Get the name of the field based on its type..
-                                                             let [fieldname (case field-type
-                                                                              :field-id       (first (get-field [field-type value]))
-                                                                              :aggregation    (nth (mbql.u/match query [:aggregation-options _ {:display-name name}] name) value)
-                                                                              :datetime-field (first (get-field value))
-                                                                              nil)]
-                                                              {fieldname direction})))))
-
-
-;;; ------------------------------------------------ field processing ------------------------------------------------
-
 (defmulti ^:private ->rvalue
   "Convert something to an 'rvalue`, i.e. a value that could be used in the right-hand side of an assignment expression.
     (let [x 100] ...) ; x is the lvalue; 100 is the rvalue"
@@ -102,6 +105,12 @@
 (defmethod ->rvalue :field-id
   [[_ field-id]]
   (:name (qp.store/field field-id)))
+
+(defmethod ->rvalue :aggregation-options [[_ _ ag-names]]
+    (:display-name ag-names))
+
+(defmethod ->rvalue :aggregate-field [[_ index]]
+  (->rvalue (nth (:aggregation *query*) index)))
 
 (defmethod ->rvalue :datetime-field
   [[_ field]]
@@ -187,35 +196,68 @@
   "Transform the MBQL filters to Cube.js filters."
   [query]
   (let [filter  (:filter query)
-        filters (if filter (parse-filter filter))]
-    (flatten
-     (if (vector? filters)
-       filters
-       (if filters (conj [] filters))))))
+        filters (if filter (parse-filter filter))
+        result  (flatten (if (vector? filters) filters (if filters (conj [] filters))))]
+    {:filters result}))
 
+;;; ---------------------------------------------------- order-by ----------------------------------------------------
 
-(defn- get-measures
-  "Get the measure fields from a MBQL query."
-  [query]
-  (concat
-    ;; The simplest case is there are a list of fields in the query.
-   (let [field-ids   (mbql.u/match (:fields query) [:field-id id] id)
-         field-names (get-field-names-by-type field-ids "measure")]
-     field-names)
-   ;; Another case if we use metrics so Metabase creates the query for us.
-   (mbql.u/match query [:aggregation-options _ {:display-name name}] name)))
+(defn- handle-order-by
+  [{:keys [order-by]}]
+    ;; Iterate over the order-by fields.
+  {:order (into {} (for [[direction field] order-by]
+                     {(->rvalue field) direction}))})
 
-(defn- get-dimensions
-  "Get the dimension fields from a MBQL query."
-  [query]
-  (concat
-    ;; The simplest case is there are a list of fields in the query.
-   (let [fields       (remove nil? (map get-field (:fields query)))
-         aggregations (get-fields-with-type fields "dimension")]
-     aggregations)
-    ;; Another case if we use metrics so Metabase creates the query for us.
-   (let [dimensions (remove nil? (map first (map get-field (:breakout query))))]
-     (if dimensions (set dimensions)))))
+;;; ----------------------------------------------------- limit ------------------------------------------------------
+
+(defn- handle-limit
+  [{:keys [limit]}]
+  (if-not (nil? limit)
+    {:limit limit}
+    nil))
+
+;;; ----------------------------------------------------- fields -----------------------------------------------------
+
+(defmulti ^:private ->cubefield
+  "Same like the `->rvalue`, but with the value returns the field type and other optional values too."
+  {:arglists '([x])}
+  mbql.u/dispatch-by-clause-name-or-class)
+
+(defmethod ->cubefield nil
+  [_]
+  nil)
+
+(defmethod ->cubefield Object
+  [this]
+  this)
+
+(defmethod ->cubefield :field-id
+  [[_ field-id]]
+  (let [field (qp.store/field field-id)]
+    {:name (:name field) :type (keyword (:description field))}))
+
+(defmethod ->cubefield :aggregation-options [[_ _ ag-names]]
+  {:name (:display-name ag-names) :type :measure})
+
+(defmethod ->cubefield :datetime-field
+  [[_ field granularity]]
+  (let [field (->cubefield field)]
+    {:name (:name field)
+     :type :timeDimension
+     :granularity (mbql-granularity->cubejs-granularity granularity)}))
+
+(defn- handle-fields
+  [{:keys [fields aggregation breakout]}]
+  (let [fields-all   (concat fields aggregation breakout)
+        cube-fields  (set (for [field fields-all] (->cubefield field)))
+        result       {:measures [] :dimensions [] :timeDimensions []}]
+    (reduce (fn [result new]
+              (case (:type new)
+                :measure       (update result :measures #(conj % (:name new)))
+                :dimension     (update result :dimensions #(conj % (:name new)))
+                :timeDimension (update result :timeDimensions #(conj % {:dimension (:name new) :granularity (:granularity new)}))))
+            result
+            cube-fields)))
 
 (defn- get-time-dimensions
   "Get the time dimensions from the MBQL query."
@@ -225,22 +267,16 @@
         named-fields (for [field fields] (list (:name (qp.store/field (first field))) (second field)))]
     (if named-fields (set named-fields))))
 
+;;; -------------------------------------------------- query build ---------------------------------------------------
+
 (defn- mbql->cubejs
   "Build a valid Cube.js query from the generated MBQL."
   [query]
-  (let [measures        (get-measures query)
-        dimensions      (get-dimensions query)
-        time-dimensions (get-time-dimensions query)
+  (let [fields          (handle-fields query)
         filters         (transform-filters query)
-        order-by        (transform-orderby query)
-        limit           (:limit query)]
-    (merge
-     (if (empty? measures) nil {:measures measures})
-     (if (empty? dimensions) nil {:dimensions dimensions})
-     (if (empty? time-dimensions) nil {:timeDimensions (for [td time-dimensions] {:dimension (first td), :granularity (second td)})})
-     (if (empty? filters) nil {:filters filters})
-     (if (empty? order-by) nil {:order order-by})
-     (if limit {:limit limit}))))
+        order-by        (handle-order-by query)
+        limit           (handle-limit query)]
+    (merge fields filters order-by limit)))
 
 ;;; ---------------------------------------------- Metabase functions ------------------------------------------------
 
@@ -280,7 +316,7 @@
 (defmethod driver/mbql->native :cubejs [_ query]
   (log/debug "MBQL:" query)
   (let [base-query    (:query query)
-        native-query  (mbql->cubejs base-query)]
+        native-query  (do-with-cache mbql->cubejs base-query)]
     {:query            native-query
      :measure-aliases  (into {} (for [[_ _ names] (:aggregation base-query)] {(keyword (:display-name names)) (keyword (:name names))}))
      :mbql?            true}))
