@@ -1,16 +1,16 @@
 TESTENV?=environments/test
 
-## start: Starts a local test environment
-.PHONY: start
-start: build
-	@mkdir -p ${TESTENV}/driver
-	@cp cubejs.metabase-driver.jar ${TESTENV}/driver
-	@cd ${TESTENV} && docker-compose up
-
 ## stop: Stops running test environment containers
 .PHONY: stop
 stop:
 	@cd ${TESTENV} && docker-compose stop
+
+## start: Starts a local test environment
+.PHONY: start
+start: stop build
+	@mkdir -p ${TESTENV}/driver
+	@cp cubejs.metabase-driver.jar ${TESTENV}/driver
+	@cd ${TESTENV} && docker-compose up
 
 ## docker: Builds the docker images for the driver building and the testing
 .PHONY: docker
