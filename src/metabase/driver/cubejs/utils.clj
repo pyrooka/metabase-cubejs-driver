@@ -14,12 +14,6 @@
    :boolean :type/Boolean
    :time    cubejs-time->metabase-time})
 
-(defn cubejs-type->metabase-type
-  "Convert the string to a number."
-  [string]
-  (let [val (read-string string)]
-    (if (number? val) val nil)))
-
 (defn- get-cube-api-url
   "Returns the Cube.js API URL from the config."
   []

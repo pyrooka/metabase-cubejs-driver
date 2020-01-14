@@ -5,6 +5,20 @@
             [cheshire.core :as json]
             [metabase.driver.cubejs.utils :as cube.utils]))
 
+
+(defn- string->number
+  "From: https://github.com/metabase/metabase/blob/master/src/metabase/query_processor/middleware/parameters/mbql.clj#L14"
+  [value]
+  (cond
+    (not (string? value)) nil
+    ;; if the string contains a period then convert to a Double
+    (re-find #"\." value)
+    (Double/parseDouble value)
+
+    ;; otherwise convert to a Long
+    :else
+    (Long/parseLong value)))
+
 (defn- get-types
   "Extract the types for each field in the response from the annotation block."
   [annotation]
@@ -18,7 +32,7 @@
   [row cols]
   (reduce-kv
    (fn [row key val]
-     (assoc row key (if (some #(= key %) cols) (cube.utils/cubejs-type->metabase-type val) val))) {} row))
+     (assoc row key (if (some #(= key %) cols) (string->number val) val))) {} row))
 
 (defn- convert-values
   "Convert the values in the rows to the correct type."
