@@ -1,10 +1,10 @@
 (ns metabase.driver.cubejs.utils
   (:require [clojure.tools.logging :as log]
-            [metabase.query-processor.store :as qp.store]
-            [clj-http.client :as client]))
+            [clj-http.client :as client]
+            [metabase.query-processor.store :as qp.store]))
 
 
-;; Is there any better? https://github.com/metabase/metabase/blob/master/src/metabase/types.clj#L81
+;; Is there a better type? https://github.com/metabase/metabase/blob/master/src/metabase/types.clj#L81
 (def cubejs-time->metabase-time
   :type/DateTime)
 
