@@ -185,8 +185,8 @@
 (defmethod negate :default [clause]
   (mbql.u/negate-filter-clause clause))
 
-(defmethod negate :and [[_ & subclause]] nil)
-(defmethod negate :or  [[_ & subclause]] nil)
+(defmethod negate :and [[_ & subclauses]] (apply vector :and (map negate subclauses)))
+(defmethod negate :or  [[_ & subclauses]] (apply vector :or  (map negate subclauses)))
 
 (defmethod negate :contains [[_ field v opts]] [:does-not-contains field v opts])
 
