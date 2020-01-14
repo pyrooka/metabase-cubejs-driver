@@ -153,8 +153,8 @@
                                                               {:member (->rvalue field) :operator "lte" :values (->rvalue max-val)}])
 
 ;; Starts/ends-with not implemented in Cube.js yet.
-(defmethod parse-filter :starts-with [] nil)
-(defmethod parse-filter :ends-with   [] nil)
+(defmethod parse-filter :starts-with [[_ _]] (throw (Exception. "\"Starts with\" filter is not supported by Cube.js yet")))
+(defmethod parse-filter :ends-with   [[_ _]] (throw (Exception. "\"Ends with\" filter is not supported by Cube.js yet")))
 
 (defmethod parse-filter :contains          [[_ field value]] {:member (->rvalue field) :operator "contains" :values (->rvalue value)})
 (defmethod parse-filter :does-not-contains [[_ field value]] {:member (->rvalue field) :operator "notContains" :values (->rvalue value)})
@@ -258,14 +258,6 @@
                 :timeDimension (update result :timeDimensions #(conj % {:dimension (:name new) :granularity (:granularity new)}))))
             result
             cube-fields)))
-
-(defn- get-time-dimensions
-  "Get the time dimensions from the MBQL query."
-  [query]
-  (let [query        (dissoc query :filter :order-by) ; TODO: fix this quick and dirty hack!!!
-        fields       (mbql.u/match query [:datetime-field [:field-id id] gran] (list id (get mbql-granularity->cubejs-granularity gran (throw (Exception. (str (name gran) " granularity not supported by Cube.js"))))))
-        named-fields (for [field fields] (list (:name (qp.store/field (first field))) (second field)))]
-    (if named-fields (set named-fields))))
 
 ;;; -------------------------------------------------- query build ---------------------------------------------------
 
