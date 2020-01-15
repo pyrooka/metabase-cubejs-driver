@@ -16,6 +16,10 @@ driver:
       display-name: Auth token (optional)
       type: string
       default: ""
+    - name: metrics-creator
+      display-name: User ID for creating the metrics (optional)
+      type: number
+      default: 1
 init:
   - step: load-namespace
     namespace: metabase.driver.cubejs
