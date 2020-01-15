@@ -187,7 +187,9 @@
     {:name (:name field) :type (keyword (:description field))}))
 
 (defmethod ->cubefield :aggregation-options [[_ _ ag-names]]
-  {:name (:display-name ag-names) :type :measure})
+  (if-let [display-name (:display-name ag-names)]
+    {:name display-name :type :measure}
+    nil))
 
 (defmethod ->cubefield :datetime-field
   [[_ field granularity]]
@@ -205,7 +207,8 @@
               (case (:type new)
                 :measure       (update result :measures #(conj % (:name new)))
                 :dimension     (update result :dimensions #(conj % (:name new)))
-                :timeDimension (update result :timeDimensions #(conj % {:dimension (:name new) :granularity (:granularity new)}))))
+                :timeDimension (update result :timeDimensions #(conj % {:dimension (:name new) :granularity (:granularity new)}))
+                nil))
             result
             cube-fields)))
 
@@ -259,11 +262,13 @@
     (map #(update-row-values % num-cols) rows)))
 
 (defn execute-http-request [native-query]
-  (let [query         (if (:mbql? native-query) (json/generate-string (:query native-query)) (:query native-query))
-        resp          (cube.utils/make-request "v1/load" query nil)
-        rows          (:data (:body resp))
-        annotation    (:annotation (:body resp))
-        types         (get-types annotation)
-        rows          (convert-values rows types)
-        result        {:rows (for [row rows] (into (ordered-map/ordered-map) (set/rename-keys row (:measure-aliases native-query))))}]
-    result))
+  (if (and (:mbql? native-query) (empty? (:measures (:query native-query))) (empty? (:dimensions (:query native-query))) (empty? (:timeDimensions (:query native-query))))
+    {:rows []}
+    (let [query         (if (:mbql? native-query) (json/generate-string (:query native-query)) (:query native-query))
+          resp          (cube.utils/make-request "v1/load" query nil)
+          rows          (:data (:body resp))
+          annotation    (:annotation (:body resp))
+          types         (get-types annotation)
+          rows          (convert-values rows types)
+          result        {:rows (for [row rows] (into (ordered-map/ordered-map) (set/rename-keys row (:measure-aliases native-query))))}]
+      result)))
