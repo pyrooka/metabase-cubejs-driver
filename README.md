@@ -1,15 +1,29 @@
 # cubejs-metabase-driver
-Cube.js driver for Metabase v0.34.0 or newer.
+With this driver you can use Cube.js as "backend" with Metabase as a "frontend". Create the schemas in Cube.js connect with Metabase and you are ready to go: make queries, filter the results and create beautiful charts and dashboards.
 
-**NOTE: The driver is under development so expect some bugs and missing features. If you find one please create an issue.**
+To make the roles clear:
+
+|    Cube.js   |Metabase|
+|--------------|--------|
+|   measure    | metric |
+|   dimension  | field  |
+|time dimension| field  |
+
+**NOTE**: The driver is under development so expect some bugs and missing features. If you find one please create an issue.
 
 # Features
-- **Auto generate data model** from the schema fetched from the Cube.js API
+## Working
+- **Auto generate data model** from the schema fetched from the Cube.js API meta endpoint
 - **Auto create metrics** from the measures. (These metrics are "invalid" when you try to edit them but still usable in queries.)
-- Support for **native queries**
-- Support for **custom questions**
+- native queries
+- custom questions
+- filters, orders, limit
+## Not working
+- Aggregations like sum, count and distinct. This should be done in Cube.js not in Metabase.
 
 # Installation
+## Requirements
+- Metabase v0.34.0 or newer
 ## Get the driver
 ### Download
 Download from the [releases](https://github.com/lili-data/metabase-cubejs-driver/releases).
