@@ -37,7 +37,20 @@
 
 (driver/register! :cubejs)
 
-(defmethod driver/supports? [:cubejs :basic-aggregations] [_ _] false)
+(defmethod driver/supports? [:cubejs :foreign-keys] [_ _]                           false)
+(defmethod driver/supports? [:cubejs :nested-fields] [_ _]                          false)
+(defmethod driver/supports? [:cubejs :set-timezone] [_ _]                           false) ; ??
+(defmethod driver/supports? [:cubejs :basic-aggregations] [_ _]                     false)
+(defmethod driver/supports? [:cubejs :expressions] [_ _]                            false)
+(defmethod driver/supports? [:cubejs :native-parameters] [_ _]                      false)
+(defmethod driver/supports? [:cubejs :expression-aggregations] [_ _]                false)
+(defmethod driver/supports? [:cubejs :nested-queries] [_ _]                         false)
+(defmethod driver/supports? [:cubejs :binning] [_ _]                                false)
+(defmethod driver/supports? [:cubejs :case-sensitivity-string-filter-options] [_ _] false)
+(defmethod driver/supports? [:cubejs :left-join] [_ _]                              false)
+(defmethod driver/supports? [:cubejs :right-join] [_ _]                             false)
+(defmethod driver/supports? [:cubejs :inner-join] [_ _]                             false)
+(defmethod driver/supports? [:cubejs :full-join] [_ _]                              false)
 
 (defmethod driver/can-connect? :cubejs [_ details]
   (if (nil? (get-cubes {:details details})) false true))
