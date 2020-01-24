@@ -26,18 +26,6 @@
       (throw (Exception. (str (name granularity) " granularity not supported by Cube.js")))
       cubejs-granularity)))
 
-(defn- process-fields
-  "Returns the processed fields from the 'measure' or 'dimension' block. Description must be 'measure' or 'dimension'."
-  [fields type]
-  (for [field fields]
-    (merge
-     {:name          (:name field)
-      :database-type (:type field)
-      :field-comment type
-      :description   (:description field)
-      :base-type     (cube.utils/cubejs-type->base-type (keyword (:type field)))}
-     (if (= (:type field) cube.utils/cubejs-time->metabase-time) {:special-type :type/CreationTime}))))
-
 (defmulti ^:private ->rvalue
   "Convert something to an 'rvalue`, i.e. a value that could be used in the right-hand side of an assignment expression.
     (let [x 100] ...) ; x is the lvalue; 100 is the rvalue"
@@ -146,8 +134,8 @@
   "Transform the MBQL filters to Cube.js filters."
   [query]
   (let [filter  (:filter query)
-        filters (if filter (parse-filter filter))
-        result  (flatten (if (vector? filters) filters (if filters (conj [] filters))))]
+        filters (if filter (parse-filter filter) nil)
+        result  (flatten (if (vector? filters) filters (if filters (conj [] filters) nil)))]
     {:filters result}))
 
 ;;; ---------------------------------------------------- order-by ----------------------------------------------------

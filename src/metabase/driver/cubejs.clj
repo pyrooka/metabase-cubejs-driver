@@ -31,7 +31,7 @@
       :field-comment type
       :description   (:description field)
       :base-type     (cube.utils/cubejs-type->base-type (keyword (:type field)))}
-     (if (= (:type field) cube.utils/cubejs-time->metabase-time) {:special-type :type/CreationTime}))))
+     (if (= (:type field) cube.utils/cubejs-time->metabase-time) {:special-type :type/CreationTime} nil))))
 
 ;;; ---------------------------------------------- Metabase functions ------------------------------------------------
 
