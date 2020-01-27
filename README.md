@@ -1,4 +1,4 @@
-# cubejs-metabase-driver
+# metabase-cubejs-driver
 With this driver you can use Cube.js as "backend" with Metabase as a "frontend". Create the schemas in Cube.js connect with Metabase and you are ready to go: make queries, filter the results and create beautiful charts and dashboards.
 
 To make the roles clear:
