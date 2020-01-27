@@ -12,6 +12,10 @@
 
 ;;; ----------------------------------------------------- common -----------------------------------------------------
 
+(defn- is-datetime-field?
+  [[type & _]]
+  (= type :datetime-field))
+
 (defn ^:private mbql-granularity->cubejs-granularity
   [granularity]
   (let [cubejs-granularity (granularity {:default :day
@@ -72,6 +76,7 @@
 
 (defmethod parse-filter nil [] nil)
 
+;; Metabase convert the `set` and `not set` filters to `= nil` `!= nil`.
 (defmethod parse-filter :=  [[_ field value]]
   (if-let [rvalue (->rvalue value)]
     {:member (->rvalue field) :operator "equals" :values rvalue}
@@ -82,13 +87,29 @@
     {:member (->rvalue field) :operator "notEquals" :values rvalue}
     (parse-filter [:not-null field])))
 
-(defmethod parse-filter :<  [[_ field value]] {:member (->rvalue field) :operator "lt" :values (->rvalue value)})
-(defmethod parse-filter :>  [[_ field value]] {:member (->rvalue field) :operator "gt" :values (->rvalue value)})
-(defmethod parse-filter :<= [[_ field value]] {:member (->rvalue field) :operator "lte" :values (->rvalue value)})
-(defmethod parse-filter :>= [[_ field value]] {:member (->rvalue field) :operator "gte" :values (->rvalue value)})
+(defmethod parse-filter :<  [[_ field value]]
+  (if (is-datetime-field? field)
+    {:member (->rvalue field) :operator "beforeDate" :values (->rvalue value)}
+    {:member (->rvalue field) :operator "lt" :values (->rvalue value)}))
+(defmethod parse-filter :>  [[_ field value]]
+  (if (is-datetime-field? field)
+    {:member (->rvalue field) :operator "afterDate" :values (->rvalue value)}
+    {:member (->rvalue field) :operator "gt" :values (->rvalue value)}))
+(defmethod parse-filter :<= [[_ field value]]
+  (if (is-datetime-field? field)
+    {:member (->rvalue field) :operator "beforeDate" :values (->rvalue value)}
+    {:member (->rvalue field) :operator "lte" :values (->rvalue value)}))
+(defmethod parse-filter :>= [[_ field value]]
+  (if (is-datetime-field? field)
+    {:member (->rvalue field) :operator "afterDate" :values (->rvalue value)}
+    {:member (->rvalue field) :operator "gte" :values (->rvalue value)}))
 
-(defmethod parse-filter :between [[_ field min-val max-val]] [{:member (->rvalue field) :operator "gte" :values (->rvalue min-val)}
-                                                              {:member (->rvalue field) :operator "lte" :values (->rvalue max-val)}])
+(defmethod parse-filter :between [[_ field min-val max-val]]
+  ;; If the type of the fields is datetime, use inDateRange.
+  (if (is-datetime-field? field)
+    {:member (->rvalue field) :operator "inDateRange" :values (concat (->rvalue min-val) (->rvalue max-val))}
+    [{:member (->rvalue field) :operator "gte" :values (->rvalue min-val)}
+     {:member (->rvalue field) :operator "lte" :values (->rvalue max-val)}]))
 
 ;; Starts/ends-with not implemented in Cube.js yet.
 (defmethod parse-filter :starts-with [[_ _]] (throw (Exception. "\"Starts with\" filter is not supported by Cube.js yet")))
