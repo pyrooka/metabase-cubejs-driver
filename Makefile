@@ -12,6 +12,11 @@ start: stop build
 	@cp cubejs.metabase-driver.jar ${TESTENV}/driver
 	@cd ${TESTENV} && docker-compose up
 
+## up: Starts the local test environment but withouth compiling the driver (just a docker-compose up)
+.PHONY: up
+up: stop
+	@cd ${TESTENV} && docker-compose up
+
 ## docker: Builds the docker images for the driver building and the testing
 .PHONY: docker
 docker:
