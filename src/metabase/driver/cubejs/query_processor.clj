@@ -79,7 +79,9 @@
 ;; Metabase convert the `set` and `not set` filters to `= nil` `!= nil`.
 (defmethod parse-filter :=  [[_ field value]]
   (if-let [rvalue (->rvalue value)]
-    {:member (->rvalue field) :operator "equals" :values rvalue}
+    (if (is-datetime-field? field)
+      {:member (->rvalue field) :operator "inDateRange" :values rvalue}
+      {:member (->rvalue field) :operator "equals" :values rvalue})
     (parse-filter [:is-null field])))
 
 (defmethod parse-filter :!= [[_ field value]]
