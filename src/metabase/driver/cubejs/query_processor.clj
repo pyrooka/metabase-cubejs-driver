@@ -1,5 +1,6 @@
 (ns metabase.driver.cubejs.query-processor
   (:require [clojure.set :as set]
+            [java-time :as t]
             [cheshire.core :as json]
             [flatland.ordered.map :as ordered-map]
             [metabase.mbql.util :as mbql.u]
@@ -88,7 +89,9 @@
 
 (defmethod ->rvalue :relative-datetime
   [[_ amount unit]]
-  (->rvalue [:absolute-datetime (u.date/add (or unit :day) amount) unit]))
+  (let [from  (u.date/format (u.date/truncate (u.date/add unit amount) unit))
+        to    (u.date/format (t/instant))]
+    [from to]))
 
 (defmethod ->rvalue :absolute-datetime
   [[_ t]]
