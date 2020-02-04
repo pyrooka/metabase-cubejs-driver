@@ -182,7 +182,7 @@
 (defmethod parse-filter :not [[_ subclause]] (parse-filter (negate subclause)))
 
 (defn- datetime-filter-optimizer
-  "Optimize the datetime filters. If we have more than one filter for a fieldm, merge them into a single `inDateRange` filter."
+  "Optimize the datetime filters. If we have more than one filter for a field, merge them into a single `inDateRange` filter."
   [result new]
   (if-not (some #(= (:member %) (:member new)) result)
     (conj result new)
