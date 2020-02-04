@@ -10,11 +10,39 @@
 
 (def ^:dynamic ^:private *query* nil)
 
+(def ^:private datetime-operators
+  ["afterDate", "beforeDate", "inDateRange", "notInDateRange"])
+
 ;;; ----------------------------------------------------- common -----------------------------------------------------
 
 (defn- is-datetime-field?
-  [[type & _]]
-  (= type :datetime-field))
+  [[ftype & _] [vtype & _]]
+  (or
+   (= ftype :datetime-field)
+   (= vtype :absolute-datetime)
+   (= vtype :relative-datetime)))
+
+(defn- is-datetime-operator?
+  [operator]
+  (some #(= operator %) datetime-operators))
+
+(defn- get-older
+  "Returns the older value."
+  [dts1 dts2]
+  (let [dt1 (u.date/parse dts1)
+        dt2 (u.date/parse dts2)]
+    (if (.isBefore dt1 dt2)
+      dts1
+      dts2)))
+
+(defn- get-newer
+  "Returns the newer value."
+  [dts1 dts2]
+  (let [dt1 (u.date/parse dts1)
+        dt2 (u.date/parse dts2)]
+    (if (.isBefore dt1 dt2)
+      dts2
+      dts1)))
 
 (defn ^:private mbql-granularity->cubejs-granularity
   [granularity]
@@ -79,7 +107,7 @@
 ;; Metabase convert the `set` and `not set` filters to `= nil` `!= nil`.
 (defmethod parse-filter :=  [[_ field value]]
   (if-let [rvalue (->rvalue value)]
-    (if (is-datetime-field? field)
+    (if (is-datetime-field? field value)
       {:member (->rvalue field) :operator "inDateRange" :values rvalue}
       {:member (->rvalue field) :operator "equals" :values rvalue})
     (parse-filter [:is-null field])))
@@ -90,25 +118,25 @@
     (parse-filter [:not-null field])))
 
 (defmethod parse-filter :<  [[_ field value]]
-  (if (is-datetime-field? field)
+  (if (is-datetime-field? field value)
     {:member (->rvalue field) :operator "beforeDate" :values (->rvalue value)}
     {:member (->rvalue field) :operator "lt" :values (->rvalue value)}))
 (defmethod parse-filter :>  [[_ field value]]
-  (if (is-datetime-field? field)
+  (if (is-datetime-field? field value)
     {:member (->rvalue field) :operator "afterDate" :values (->rvalue value)}
     {:member (->rvalue field) :operator "gt" :values (->rvalue value)}))
 (defmethod parse-filter :<= [[_ field value]]
-  (if (is-datetime-field? field)
+  (if (is-datetime-field? field value)
     {:member (->rvalue field) :operator "beforeDate" :values (->rvalue value)}
     {:member (->rvalue field) :operator "lte" :values (->rvalue value)}))
 (defmethod parse-filter :>= [[_ field value]]
-  (if (is-datetime-field? field)
+  (if (is-datetime-field? field value)
     {:member (->rvalue field) :operator "afterDate" :values (->rvalue value)}
     {:member (->rvalue field) :operator "gte" :values (->rvalue value)}))
 
 (defmethod parse-filter :between [[_ field min-val max-val]]
   ;; If the type of the fields is datetime, use inDateRange.
-  (if (is-datetime-field? field)
+  (if (is-datetime-field? field nil)
     {:member (->rvalue field) :operator "inDateRange" :values (concat (->rvalue min-val) (->rvalue max-val))}
     [{:member (->rvalue field) :operator "gte" :values (->rvalue min-val)}
      {:member (->rvalue field) :operator "lte" :values (->rvalue max-val)}]))
@@ -153,12 +181,53 @@
 
 (defmethod parse-filter :not [[_ subclause]] (parse-filter (negate subclause)))
 
+(defn- datetime-filter-optimizer
+  "Optimize the datetime filters. If we have more than one filter for a field merge them to a single `inDateRange` filter."
+  [result new]
+  (if-not (some #(= (:member %) (:member new)) result)
+    (conj result new)
+    (for [filter result]
+      (if-not (= (:member filter) (:member new))
+        filter
+        (let [old-operator      (:operator filter)
+              old-first-value   (first (:values filter))
+              old-second-value  (second (:values filter))
+              new-operator      (:operator new)
+              new-first-value   (first (:values new))
+              new-second-value  (second (:values new))]
+          (merge
+           filter
+           (case old-operator
+             "beforeDate" (case new-operator
+                            "beforeDate"  {:operator "beforeDate"  :values [(get-older old-first-value new-first-value)]}
+                            "afterDate"   {:operator "inDateRange" :values [new-first-value, old-first-value]}
+                            "inDateRange" {:operator "inDateRange" :values [new-first-value, (get-older old-first-value new-second-value)]})
+             "afterDate" (case new-operator
+                           "beforeDate"  {:operator "inDateRange" :values [old-first-value, new-first-value]}
+                           "afterDate"   {:operator "afterDate" :values [(get-newer old-first-value new-first-value)]}
+                           "inDateRange" {:operator "inDateRange" :values [(get-newer old-first-value new-first-value), new-second-value]})
+             "inDateRange" (case new-operator
+                             "beforeDate"  {:operator "inDateRange" :values [new-first-value, (get-older old-second-value new-first-value)]}
+                             "afterDate"   {:operator "inDateRange" :values [(get-newer old-first-value new-first-value), old-second-value]}
+                             "inDateRange" {:operator "inDateRange" :values [(get-newer old-first-value new-first-value) (get-older old-second-value new-second-value)]}))))))))
+
+(defn- optimize-datetime-filters
+  "If we have more than one filter to the same date field we have to transform them to a single `dateRange` filter."
+  [filters]
+  (let [other-filters      (filterv #(not (is-datetime-operator? (:operator %))) filters)
+        datetime-filters   (filterv #(is-datetime-operator? (:operator %)) filters)
+        optimized-filters  (reduce datetime-filter-optimizer [] datetime-filters)]
+    (concat
+     other-filters
+     optimized-filters)))
+
 (defn- transform-filters
   "Transform the MBQL filters to Cube.js filters."
   [query]
   (let [filter  (:filter query)
         filters (if filter (parse-filter filter) nil)
-        result  (flatten (if (vector? filters) filters (if filters (conj [] filters) nil)))]
+        raw     (flatten (if (vector? filters) filters (if filters (conj [] filters) nil)))
+        result  (optimize-datetime-filters raw)]
     {:filters result}))
 
 ;;; ---------------------------------------------------- order-by ----------------------------------------------------
