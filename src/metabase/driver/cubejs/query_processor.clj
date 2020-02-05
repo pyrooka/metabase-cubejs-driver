@@ -80,6 +80,11 @@
 (defmethod ->rvalue :aggregation-options [[_ _ ag-names]]
   (:display-name ag-names))
 
+(defmethod ->rvalue :aggregation [[_ value]]
+  (if (number? value)
+    (->rvalue (nth (:aggregation *query*) value))
+    (->rvalue value)))
+
 (defmethod ->rvalue :aggregate-field [[_ index]]
   (->rvalue (nth (:aggregation *query*) index)))
 
