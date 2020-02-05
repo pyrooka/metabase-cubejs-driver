@@ -94,9 +94,7 @@
 
 (defmethod ->rvalue :relative-datetime
   [[_ amount unit]]
-  (let [from  (u.date/format (u.date/truncate (u.date/add unit amount) unit))
-        to    (u.date/format (t/instant))]
-    [from to]))
+  [(u.date/format (u.date/truncate (u.date/add unit amount) unit))])
 
 (defmethod ->rvalue :absolute-datetime
   [[_ t]]
