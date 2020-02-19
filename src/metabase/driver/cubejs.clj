@@ -7,6 +7,20 @@
             [metabase.models.metric :as metric :refer [Metric]]
             [metabase.driver.cubejs.query-processor :as cubejs.qp]))
 
+(defn- cubejs-agg->meta-agg
+  "Returns the name of the cubejs aggregation in metabase."
+  [agg-name]
+  (case agg-name
+    "number" :count
+    "count" :count
+    "countDistinct" :distinct
+    "countDistinctApprox" :distinct
+    "sum" :sum
+    "avg" :avg
+    "min" :min
+    "max" :max
+    "runningTotal" :count
+    :count))
 
 (defn- measure-in-metrics?
   "Checks is the given measure already in the metrics."
@@ -30,7 +44,8 @@
       :database-type (:type field)
       :field-comment type
       :description   (:description field)
-      :base-type     (cube.utils/cubejs-type->base-type (keyword (:type field)))}
+      :base-type     (cube.utils/cubejs-type->base-type (keyword (:type field)))
+      :agg-type      (:aggType field)}
      (if (= (:type field) cube.utils/cubejs-time->metabase-time) {:special-type :type/CreationTime} nil))))
 
 ;;; ---------------------------------------------- Metabase functions ------------------------------------------------
@@ -74,12 +89,12 @@
                     :name        (:name measure)
                     :description (:description measure)
                     :definition  {:source-table (:id table)
-                                  :aggregation  [[:count]]})))
+                                  :aggregation  [[(cubejs-agg->meta-agg (:agg-type measure))]]})))
     {:name   (:name cube)
      :schema (:schema cube)
-     ; Segments are currently unsupported.
+     ;; Segments are currently unsupported.
      ;; Remove the description key from the fields then create a set.
-     :fields (set (map #(dissoc % :description) (concat measures dimensions)))}))
+     :fields (set (map #(dissoc % :description :agg-type) (concat measures dimensions)))}))
 
 (defmethod driver/mbql->native :cubejs [_ query]
   (log/debug "MBQL:" query)
