@@ -125,7 +125,7 @@
 
 (defmethod parse-filter :<  [[_ field value]]
   (if (is-datetime-field? field value)
-    {:member (->rvalue field) :operator "beforeDate" :values (->rvalue value)}
+    {:member (->rvalue field) :operator "beforeDate" :values (->rvalue value)}  
     {:member (->rvalue field) :operator "lt" :values (->rvalue value)}))
 (defmethod parse-filter :>  [[_ field value]]
   (if (is-datetime-field? field value)
@@ -181,51 +181,12 @@
   (mbql.u/negate-filter-clause clause))
 
 (defmethod negate :and [[_ & subclauses]] (apply vector :and (map negate subclauses)))
+
 (defmethod negate :or  [[_ & subclauses]] (apply vector :or  (map negate subclauses)))
 
 (defmethod negate :contains [[_ field v opts]] [:does-not-contains field v opts])
 
 (defmethod parse-filter :not [[_ subclause]] (parse-filter (negate subclause)))
-
-(defn- datetime-filter-optimizer
-  "Optimize the datetime filters. If we have more than one filter for a field, merge them into a single `inDateRange` filter."
-  [result new]
-  (if-not (some #(= (:member %) (:member new)) result)
-    (conj result new)
-    (for [filter result]
-      (if-not (= (:member filter) (:member new))
-        filter
-        (let [old-operator      (:operator filter)
-              old-first-value   (first (:values filter))
-              old-second-value  (second (:values filter))
-              new-operator      (:operator new)
-              new-first-value   (first (:values new))
-              new-second-value  (second (:values new))]
-          (merge
-           filter
-           (case old-operator
-             "beforeDate" (case new-operator
-                            "beforeDate"  {:operator "beforeDate"  :values [(get-older old-first-value new-first-value)]}
-                            "afterDate"   {:operator "inDateRange" :values [new-first-value, old-first-value]}
-                            "inDateRange" {:operator "inDateRange" :values [new-first-value, (get-older old-first-value new-second-value)]})
-             "afterDate" (case new-operator
-                           "beforeDate"  {:operator "inDateRange" :values [old-first-value, new-first-value]}
-                           "afterDate"   {:operator "afterDate" :values [(get-newer old-first-value new-first-value)]}
-                           "inDateRange" {:operator "inDateRange" :values [(get-newer old-first-value new-first-value), new-second-value]})
-             "inDateRange" (case new-operator
-                             "beforeDate"  {:operator "inDateRange" :values [new-first-value, (get-older old-second-value new-first-value)]}
-                             "afterDate"   {:operator "inDateRange" :values [(get-newer old-first-value new-first-value), old-second-value]}
-                             "inDateRange" {:operator "inDateRange" :values [(get-newer old-first-value new-first-value) (get-older old-second-value new-second-value)]}))))))))
-
-(defn- optimize-datetime-filters
-  "If we have more than one filter to the same date field we have to transform them to a single `dateRange` filter."
-  [filters]
-  (let [other-filters      (filterv #(not (is-datetime-operator? (:operator %))) filters)
-        datetime-filters   (filterv #(is-datetime-operator? (:operator %)) filters)
-        optimized-filters  (reduce datetime-filter-optimizer [] datetime-filters)]
-    (concat
-     other-filters
-     optimized-filters)))
 
 (defn- transform-filters
   "Transform the MBQL filters to Cube.js filters."
@@ -233,7 +194,7 @@
   (let [filter  (:filter query)
         filters (if filter (parse-filter filter) nil)
         raw     (flatten (if (vector? filters) filters (if filters (conj [] filters) nil)))
-        result  (optimize-datetime-filters raw)]
+        result  (filterv #(not (is-datetime-operator? (:operator %))) raw)]   
     {:filters result}))
 
 ;;; ---------------------------------------------------- order-by ----------------------------------------------------
@@ -282,21 +243,99 @@
   (let [field (->cubefield field)]
     {:name (:name field)
      :type :timeDimension
-     :granularity (mbql-granularity->cubejs-granularity granularity)}))
+     :granularity (mbql-granularity->cubejs-granularity granularity)
+     :dateRange ["2019-01-01" "2019-10-10"]}))
+
+
+(defn- datetime-filter-optimizer
+"Optimize the datetime filters. If we have more than one filter for a field, merge them into a single `inDateRange` filter."
+[result new]
+(if-not (some #(= (:member %) (:member new)) result)
+  (conj result new)
+  (for [filter result]
+    (if-not (= (:member filter) (:member new))
+      filter
+      (let [old-operator      (:operator filter)
+            old-first-value   (first (:values filter))
+            old-second-value  (second (:values filter))
+            new-operator      (:operator new)
+            new-first-value   (first (:values new))
+            new-second-value  (second (:values new))]
+        (merge
+          filter
+          (case old-operator
+            "beforeDate" (case new-operator
+                          "beforeDate"  {:operator "beforeDate"  :values [(get-older old-first-value new-first-value)]}
+                          "afterDate"   {:operator "inDateRange" :values [new-first-value, old-first-value]}
+                          "inDateRange" {:operator "inDateRange" :values [new-first-value, (get-older old-first-value new-second-value)]})
+            "afterDate" (case new-operator
+                          "beforeDate"  {:operator "inDateRange" :values [old-first-value, new-first-value]}
+                          "afterDate"   {:operator "afterDate" :values [(get-newer old-first-value new-first-value)]}
+                          "inDateRange" {:operator "inDateRange" :values [(get-newer old-first-value new-first-value), new-second-value]})
+            "inDateRange" (case new-operator
+                            "beforeDate"  {:operator "inDateRange" :values [new-first-value, (get-older old-second-value new-first-value)]}
+                            "afterDate"   {:operator "inDateRange" :values [(get-newer old-first-value new-first-value), old-second-value]}
+                            "inDateRange" {:operator "inDateRange" :values [(get-newer old-first-value new-first-value) (get-older old-second-value new-second-value)]}))))))))
+    
+(defn- optimize-datetime-filters
+  "If we have more than one filter to the same date field we have to transform them to a single `dateRange` filter."
+  [filters]
+  (let [datetime-filters   (filterv #(is-datetime-operator? (:operator %)) filters)
+        optimized-filters  (reduce datetime-filter-optimizer [] datetime-filters)]
+    optimized-filters))
+
+(defn- handle-datetime-filter
+  [date-filter]
+  (let [
+        date-filters (if date-filter (parse-filter date-filter) nil)
+        raw-filters     (flatten (if (vector? date-filters) date-filters (if date-filters (conj [] date-filters) nil)))
+        cube-date-filters  (optimize-datetime-filters raw-filters)
+        result-fields       {}]
+    (reduce (fn [result-fields, cube-date-filter]
+      (assoc result-fields (:member cube-date-filter) {:type :timeDimension :name (:member cube-date-filter) :dateRange (:values cube-date-filter)}))
+      result-fields
+      cube-date-filters)
+      ))
+
+(defn- handle-datetime-fields
+  [time-dimensions cube-fields]      
+    (reduce (fn [time-dimensions new] 
+    (case (:type new)
+      :timeDimension    
+        (if (contains? time-dimensions (:name new)) 
+          (assoc-in time-dimensions [(:name new) :granularity] (:granularity new))
+          (assoc time-dimensions (:name new) {:type :dimension :name (:name new)}))
+      time-dimensions))
+    time-dimensions 
+    cube-fields))
+
+
+(defn- handle-measures-dimensions-fields
+  [cube-fields]
+  (let [result {:measures [] :dimensions [] :timeDimensions []}]     
+  (reduce (fn [result new]             
+    (case (:type new)
+      :measure       (update result :measures #(conj % (:name new)))
+      :dimension     (update result :dimensions #(conj % (:name new)))
+      result))
+    result
+    cube-fields)))
 
 (defn- handle-fields
-  [{:keys [fields aggregation breakout]}]
-  (let [fields-all   (concat fields aggregation breakout)
+  [{:keys [filter fields aggregation breakout]}]
+  (let [time-dimensions-filter (if filter (handle-datetime-filter (concat filter)) nil)
+        fields-all   (concat fields aggregation breakout)
         cube-fields  (set (for [field fields-all] (->cubefield field)))
-        result       {:measures [] :dimensions [] :timeDimensions []}]
+        time-dimensions (handle-datetime-fields time-dimensions-filter cube-fields)
+        result       (handle-measures-dimensions-fields cube-fields)]     
     (reduce (fn [result new]
-              (case (:type new)
-                :measure       (update result :measures #(conj % (:name new)))
-                :dimension     (update result :dimensions #(conj % (:name new)))
-                :timeDimension (update result :timeDimensions #(conj % {:dimension (:name new) :granularity (:granularity new)}))
-                nil))
+                       
+            (case (:type new)
+              :timeDimension (update result :timeDimensions #(conj % {:dimension (:name new) :granularity (:granularity new) :dateRange (:dateRange new)}))
+              :dimension     (update result :dimensions #(conj % (:name new)))
+              result))
             result
-            cube-fields)))
+            (vals time-dimensions))))
 
 ;;; -------------------------------------------------- query build ---------------------------------------------------
 
@@ -305,7 +344,7 @@
   [query]
   (binding [*query*  query]
     (let [fields          (handle-fields query)
-          filters         (transform-filters query)
+          filters         (transform-filters query)          
           order-by        (handle-order-by query)
           limit           (handle-limit query)]
       (merge fields filters order-by limit))))
