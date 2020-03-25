@@ -114,7 +114,7 @@
 (defmethod parse-filter :=  [[_ field value]]
   (if-let [rvalue (->rvalue value)]
     (if (is-datetime-field? field value)
-      {:member (->rvalue field) :operator "inDateRange" :values rvalue}
+      {:member (->rvalue field) :operator "inDateRange" :values (concat rvalue rvalue)}
       {:member (->rvalue field) :operator "equals" :values rvalue})
     (parse-filter [:is-null field])))
 
