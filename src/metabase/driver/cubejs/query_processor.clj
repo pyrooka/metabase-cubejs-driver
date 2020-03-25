@@ -243,8 +243,7 @@
   (let [field (->cubefield field)]
     {:name (:name field)
      :type :timeDimension
-     :granularity (mbql-granularity->cubejs-granularity granularity)
-     :dateRange ["2019-01-01" "2019-10-10"]}))
+     :granularity (mbql-granularity->cubejs-granularity granularity)}))
 
 
 (defn- datetime-filter-optimizer
@@ -303,7 +302,9 @@
     (case (:type new)
       :timeDimension    
         (if (contains? time-dimensions (:name new)) 
-          (assoc-in time-dimensions [(:name new) :granularity] (:granularity new))
+          (-> time-dimensions 
+            (assoc-in [(:name new) :granularity] (:granularity new))
+            (assoc-in [(:name new) :type] :timeDimensionGran)) 
           (assoc time-dimensions (:name new) {:type :dimension :name (:name new)}))
       time-dimensions))
     time-dimensions 
@@ -328,10 +329,10 @@
         cube-fields  (set (for [field fields-all] (->cubefield field)))
         time-dimensions (handle-datetime-fields time-dimensions-filter cube-fields)
         result       (handle-measures-dimensions-fields cube-fields)]     
-    (reduce (fn [result new]
-                       
+    (reduce (fn [result new]                       
             (case (:type new)
-              :timeDimension (update result :timeDimensions #(conj % {:dimension (:name new) :granularity (:granularity new) :dateRange (:dateRange new)}))
+              :timeDimension (update result :timeDimensions #(conj % {:dimension (:name new) :dateRange (:dateRange new)}))
+              :timeDimensionGran (update result :timeDimensions #(conj % {:dimension (:name new) :granularity (:granularity new) :dateRange (:dateRange new)}))
               :dimension     (update result :dimensions #(conj % (:name new)))
               result))
             result
