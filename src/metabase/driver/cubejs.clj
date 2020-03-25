@@ -85,7 +85,7 @@
       (if-not (measure-in-metrics? metrics (:name measure))
         (db/insert! Metric
                     :table_id    (:id table)
-                    :creator_id  (:metrics-creator (:details database))
+                    :creator_id  (Integer/parseInt (:metrics-creator (:details database)))
                     :name        (:name measure)
                     :description (:description measure)
                     :definition  {:source-table (:id table)
