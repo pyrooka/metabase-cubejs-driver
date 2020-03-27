@@ -45,6 +45,12 @@
       dts2
       dts1)))
 
+  (defn- lower-bound [unit t]
+    (:start (u.date/range t unit)))
+  
+  (defn- upper-bound [unit t]
+    (:end (u.date/range t unit)))
+
 (defn ^:private mbql-granularity->cubejs-granularity
   [granularity]
   (let [cubejs-granularity (granularity {:default :day
@@ -94,7 +100,8 @@
 
 (defmethod ->rvalue :relative-datetime
   [[_ amount unit]]
-  [(u.date/format (u.date/truncate (u.date/add unit amount) unit))])
+  [(u.date/format (u.date/truncate (lower-bound unit (u.date/add unit amount)) unit))
+   (u.date/format (u.date/truncate (upper-bound unit (u.date/add unit amount)) unit))])
 
 (defmethod ->rvalue :absolute-datetime
   [[_ t]]
@@ -114,7 +121,7 @@
 (defmethod parse-filter :=  [[_ field value]]
   (if-let [rvalue (->rvalue value)]
     (if (is-datetime-field? field value)
-      {:member (->rvalue field) :operator "inDateRange" :values (concat rvalue rvalue)}
+      {:member (->rvalue field) :operator "inDateRange" :values (concat rvalue)}
       {:member (->rvalue field) :operator "equals" :values rvalue})
     (parse-filter [:is-null field])))
 
@@ -250,7 +257,13 @@
 "Optimize the datetime filters. If we have more than one filter for a field, merge them into a single `inDateRange` filter."
 [result new]
 (if-not (some #(= (:member %) (:member new)) result)
-  (conj result new)
+  (conj result (if (<= (count (:values new)) 2)
+  new
+  (let [first-value   (first (:values new))
+        second-value  (last (:values new))]
+    (merge
+      new
+      {:values [first-value second-value]}))))  
   (for [filter result]
     (if-not (= (:member filter) (:member new))
       filter
