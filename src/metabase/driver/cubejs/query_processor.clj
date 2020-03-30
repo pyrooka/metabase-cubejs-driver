@@ -1,6 +1,5 @@
 (ns metabase.driver.cubejs.query-processor
   (:require [clojure.set :as set]
-            [java-time :as t]
             [cheshire.core :as json]
             [flatland.ordered.map :as ordered-map]
             [metabase.mbql.util :as mbql.u]
