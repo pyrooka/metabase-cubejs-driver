@@ -1,7 +1,7 @@
 # Complete list of options here: https://github.com/metabase/metabase/wiki/Metabase-Plugin-Manifest-Reference
 info:
   name: Metabase Cubejs Driver
-  version: 0.1.0
+  version: 0.8.0
   description: Cubejs REST API driver
 driver:
   name: cubejs
