@@ -362,11 +362,11 @@
 
 ;;; ----------------------------------------------- result processing ------------------------------------------------
 
-(defn- string->number
+(defn- parse-number
   "From: https://github.com/metabase/metabase/blob/master/src/metabase/query_processor/middleware/parameters/mbql.clj#L14"
   [value]
   (cond
-    (not (string? value)) nil
+    (not (string? value)) value
     ;; if the string contains a period then convert to a Double
     (re-find #"\." value)
     (Double/parseDouble value)
@@ -388,7 +388,7 @@
   [row cols]
   (reduce-kv
    (fn [row key val]
-     (assoc row key (if (some #(= key %) cols) (string->number val) val))) {} row))
+     (assoc row key (if (some #(= key %) cols) (parse-number val) val))) {} row))
 
 (defn- convert-values
   "Convert the values in the rows to the correct type."
