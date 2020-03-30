@@ -13,12 +13,12 @@
   (case agg-name
     "number" :count
     "count" :count
-    "countDistinct" :distinct
-    "countDistinctApprox" :distinct
-    "sum" :sum
-    "avg" :avg
-    "min" :min
-    "max" :max
+    "countDistinct" :count
+    "countDistinctApprox" :count
+    "sum" :count
+    "avg" :count
+    "min" :count
+    "max" :count
     "runningTotal" :count
     :count))
 
