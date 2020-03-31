@@ -1,10 +1,12 @@
 (ns metabase.driver.cubejs.query-processor
   (:require [clojure.set :as set]
+            [toucan.db :as db]
             [cheshire.core :as json]
             [flatland.ordered.map :as ordered-map]
             [metabase.mbql.util :as mbql.u]
             [metabase.util.date-2 :as u.date]
             [metabase.query-processor.store :as qp.store]
+            [metabase.models.metric :as metric :refer [Metric]]
             [metabase.driver.cubejs.utils :as cube.utils]))
 
 
@@ -14,6 +16,9 @@
   ["afterDate", "beforeDate", "inDateRange", "notInDateRange"])
 
 ;;; ----------------------------------------------------- common -----------------------------------------------------
+
+(defn get-metric-cube-name [metric-display-name table-id]
+  (:cube-name (:definition (db/select-one Metric :name metric-display-name :table_id table-id :archived false))))
 
 (defn- is-datetime-field?
   [[ftype & _] [vtype & _]]
@@ -83,7 +88,7 @@
   (:name (qp.store/field field-id)))
 
 (defmethod ->rvalue :aggregation-options [[_ _ ag-names]]
-  (:display-name ag-names))
+  (get-metric-cube-name (:display-name ag-names) (:source-table *query*)))
 
 (defmethod ->rvalue :aggregation [[_ value]]
   (if (number? value)
@@ -240,8 +245,8 @@
     {:name (:name field) :type (keyword (:description field))}))
 
 (defmethod ->cubefield :aggregation-options [[_ _ ag-names]]
-  (if-let [display-name (:display-name ag-names)]
-    {:name display-name :type :measure}
+  (if-let [metric-cube-name (get-metric-cube-name (:display-name ag-names) (:source-table *query*))]
+    {:name metric-cube-name :type :measure}
     nil))
 
 (defmethod ->cubefield :datetime-field
