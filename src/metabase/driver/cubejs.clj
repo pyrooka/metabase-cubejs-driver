@@ -24,8 +24,8 @@
 
 (defn- measure-in-metrics?
   "Checks is the given measure already in the metrics."
-  [metrics measure]
-  (some #(= (:name %) measure) metrics))
+  [metrics measure-name]
+  (some #(= (:cube-name (:definition %)) measure-name) metrics))
 
 (defn- get-cubes
   "Get all the cubes from the Cube.js REST API."
@@ -82,13 +82,14 @@
         dimensions (process-fields (:dimensions cube) "dimension")
         metrics    (metric/retrieve-metrics (:id table) :all)]
     (doseq [measure measures]
-      (if-not (measure-in-metrics? metrics (:name measure))
+      (if-not (measure-in-metrics? metrics (:name measure)) ; We can use the `name` of the measure here because it is already untouched (no rename).
         (db/insert! Metric
                     :table_id    (:id table)
                     :creator_id  (let [creator-id (:metrics-creator (:details database))] (if (int? creator-id) creator-id (Integer/parseInt creator-id)))
                     :name        (:name measure)
                     :description (:description measure)
                     :definition  {:source-table (:id table)
+                                  :cube-name  (:name measure)
                                   :aggregation  [[(cubejs-agg->meta-agg (:agg-type measure))]]})))
     {:name   (:name cube)
      :schema (:schema cube)
@@ -101,7 +102,7 @@
   (let [base-query    (:query query)
         native-query  (cubejs.qp/mbql->cubejs base-query)]
     {:query            native-query
-     :measure-aliases  (into {} (for [[_ _ names] (:aggregation base-query)] {(keyword (:display-name names)) (keyword (:name names))}))
+     :measure-aliases  (into {} (for [[_ _ names] (:aggregation base-query)] {(keyword (cubejs.qp/get-metric-cube-name (:display-name names) (:source-table base-query))) (keyword (:name names))}))
      :mbql?            true}))
 
 (defmethod driver/execute-query :cubejs [_ {native-query :native}]
