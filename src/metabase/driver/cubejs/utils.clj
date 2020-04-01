@@ -35,12 +35,14 @@
   [resource query database]
   (let [api-url    (if (nil? database) (get-cube-api-url) (:cubeurl (:details database)))
         url        (str (check-url-ending-slash api-url) resource)
-        auth-token (if (nil? database) (get-cube-auth-token) (:authtoken (:details database)))]
-    (loop []
-      (log/debug "Request:" url auth-token query)
+        auth-token (if (nil? database) (get-cube-auth-token) (:authtoken (:details database)))
+        spanId  (.toString (java.util.UUID/randomUUID))]
+    (loop [requestSequenceId 1]
+      (log/debug "Request:" url auth-token query spanId requestSequenceId)
       (let [resp (client/request {:method            :get
                                   :url               url
-                                  :headers           {:authorization auth-token}
+                                  :headers           {:authorization auth-token
+                                                      :x-request-id (str spanId '-span- requestSequenceId)}
                                   :query-params      {"query" query}
                                   :accept            :json
                                   :as                :json
@@ -51,7 +53,7 @@
           200 (if (= (:error body) "Continue wait") ; check does the response contains "Continue wait" message or not.
                 (do
                   (Thread/sleep 2000) ; If it contains, wait 2 sec,
-                  (recur)) ; then retry the query.
+                  (recur (+ requestSequenceId 1))) ; then retry the query.
                 resp)
           400 (throw (Exception. (format "Error occured: %s" body)))
           403 (throw (Exception. "Authorization error. Check your auth token!"))
