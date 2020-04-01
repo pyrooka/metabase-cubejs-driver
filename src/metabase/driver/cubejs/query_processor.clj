@@ -341,7 +341,7 @@
 
 (defn- handle-fields
   [{:keys [filter fields aggregation breakout]}]
-  (let [time-dimensions-filter (if filter (handle-datetime-filter (concat filter)) nil)
+  (let [time-dimensions-filter (if filter (handle-datetime-filter filter) nil)
         fields-all             (concat fields aggregation breakout)
         cube-fields            (set (for [field fields-all] (->cubefield field)))
         time-dimensions        (handle-datetime-fields time-dimensions-filter cube-fields)
