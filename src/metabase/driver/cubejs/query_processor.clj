@@ -248,7 +248,7 @@
   (let [filter  (:filter query)
         filters (if filter (parse-filter filter) nil)
         raw     (flatten (if (vector? filters) filters (if filters (conj [] filters) nil)))
-        optimized (optimize-datetime-filters raw)
+        optimized (reduce datetime-filter-optimizer [] raw)
         result  (filterv #(or (not (is-datetime-operator? (:operator %))) (and (is-datetime-operator? (:operator %)) (< (count (:values %)) 2))) optimized)]
     {:filters result}))
 
