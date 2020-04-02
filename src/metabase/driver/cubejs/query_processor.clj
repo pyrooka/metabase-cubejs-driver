@@ -245,11 +245,12 @@
 (defn- transform-filters
   "Transform the MBQL filters to Cube.js filters."
   [query]
-  (let [filter  (:filter query)
-        filters (if filter (parse-filter filter) nil)
-        raw     (flatten (if (vector? filters) filters (if filters (conj [] filters) nil)))
-        optimized (reduce datetime-filter-optimizer [] raw)
-        result  (filterv #(or (not (is-datetime-operator? (:operator %))) (and (is-datetime-operator? (:operator %)) (< (count (:values %)) 2))) optimized)]
+  (let [filter               (:filter query)
+        filters              (if filter (parse-filter filter) nil)
+        raw                  (flatten (if (vector? filters) filters (if filters (conj [] filters) nil)))
+        non-datetime-filters (filterv #(not (is-datetime-operator? (:operator %))) raw)
+        datetime-filters     (optimize-datetime-filters raw)
+        result               (into [] (concat non-datetime-filters (filterv #(and (is-datetime-operator? (:operator %)) (< (count (:values %)) 2)) datetime-filters)))]
     {:filters result}))
 
 ;;; ---------------------------------------------------- order-by ----------------------------------------------------
@@ -341,11 +342,11 @@
 
 (defn- handle-fields
   [{:keys [filter fields aggregation breakout]}]
-  (let [time-dimensions-filter (if filter (handle-datetime-filter (concat filter)) nil)
-        fields-all       (concat fields aggregation breakout)
-        cube-fields      (set (for [field fields-all] (->cubefield field)))
-        time-dimensions  (handle-datetime-fields time-dimensions-filter cube-fields)
-        result           (handle-measures-dimensions-fields cube-fields)]
+  (let [time-dimensions-filter (if filter (handle-datetime-filter filter) nil)
+        fields-all             (concat fields aggregation breakout)
+        cube-fields            (set (for [field fields-all] (->cubefield field)))
+        time-dimensions        (handle-datetime-fields time-dimensions-filter cube-fields)
+        result                 (handle-measures-dimensions-fields cube-fields)]
     (reduce (fn [result new]
               (case (:type new)
                 :timeDimension (update result :timeDimensions #(conj % {:dimension (:name new) :dateRange (:dateRange new)}))
