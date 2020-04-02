@@ -245,11 +245,12 @@
 (defn- transform-filters
   "Transform the MBQL filters to Cube.js filters."
   [query]
-  (let [filter  (:filter query)
-        filters (if filter (parse-filter filter) nil)
-        raw     (flatten (if (vector? filters) filters (if filters (conj [] filters) nil)))
-        optimized (reduce datetime-filter-optimizer [] raw)
-        result  (filterv #(or (not (is-datetime-operator? (:operator %))) (and (is-datetime-operator? (:operator %)) (< (count (:values %)) 2))) optimized)]
+  (let [filter               (:filter query)
+        filters              (if filter (parse-filter filter) nil)
+        raw                  (flatten (if (vector? filters) filters (if filters (conj [] filters) nil)))
+        non-datetime-filters (filterv #(not (is-datetime-operator? (:operator %))) raw)
+        datetime-filters     (optimize-datetime-filters raw)
+        result               (into [] (concat non-datetime-filters (filterv #(and (is-datetime-operator? (:operator %)) (< (count (:values %)) 2)) datetime-filters)))]
     {:filters result}))
 
 ;;; ---------------------------------------------------- order-by ----------------------------------------------------
