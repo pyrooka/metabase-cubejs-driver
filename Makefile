@@ -28,6 +28,7 @@ docker:
 ## build: Builds the driver
 .PHONY: build
 build:
+	@rm -rf target cubejs.metabase-driver.jar
 	@docker run --rm -v $(shell pwd):/driver/metabase-cubejs-driver metabase-driver-builder /bin/sh -c "lein clean; DEBUG=1 LEIN_SNAPSHOTS_IN_RELEASE=true lein uberjar"
 	@cp target/uberjar/cubejs.metabase-driver.jar ./
 
