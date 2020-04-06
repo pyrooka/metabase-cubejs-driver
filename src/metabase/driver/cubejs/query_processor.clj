@@ -68,7 +68,8 @@
                                          :second        :second
                                          :month-of-year :month
                                          :day-of-year   :day
-                                         :day-of-month  :day})] ;; TODO :day-of-week   :day :week-of-year :minute-of-hour, :hour-of-day Not Suported
+                                         :day-of-month  :day
+                                         :day-of-week   :day})] ;; TODO  :day :week-of-year :minute-of-hour, :hour-of-day Not Suported
     (if (nil? cubejs-granularity)
       (throw (Exception. (str (name granularity) " granularity not supported by Cube.js")))
       cubejs-granularity)))
@@ -420,8 +421,12 @@
 (defmethod extract-date :day-of-month [_ date]
   (.getValue (time/day-of-month date)))
 
-; (defmethod extract-date :day-of-week [_ date]
-;   (.getValue (time/day-of-week date)))  TODO Missmatch Formating CubeJS ISO-8601 Metabase US Standard?
+(defmethod extract-date :day-of-week [_ date]
+  (let [java-day  (.getValue (time/day-of-week date))
+        moved-day  (+ java-day 1)]
+        (if (> moved-day 7)
+          1 ;; Sunday
+          moved-day)))
 
 ; (defmethod extract-date :week-of-year [_ date]
 ; ) TODO :week-of-year
