@@ -103,6 +103,7 @@
         native-query  (cubejs.qp/mbql->cubejs base-query)]
     {:query            native-query
      :measure-aliases  (into {} (for [[_ _ names] (:aggregation base-query)] {(keyword (cubejs.qp/get-metric-cube-name (:display-name names) (:source-table base-query))) (keyword (:name names))}))
+     :date-granularity-fields (cubejs.qp/pre-datetime-granularity base-query)
      :mbql?            true}))
 
 (defmethod driver/execute-query :cubejs [_ {native-query :native}]
