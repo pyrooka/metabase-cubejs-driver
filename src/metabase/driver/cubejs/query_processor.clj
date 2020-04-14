@@ -270,9 +270,12 @@
 
 (defn- handle-limit
   [{:keys [limit]}]
-  (if-not (nil? limit)
-    {:limit limit}
-    nil))
+  ( let [limit-limit 50000]
+    (if-not (nil? limit)
+    {:limit (if (> limit limit-limit)
+      limit-limit
+      limit)}
+    nil)))
 
 ;;; ----------------------------------------------------- fields -----------------------------------------------------
 
