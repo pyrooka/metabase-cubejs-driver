@@ -2,6 +2,7 @@
   "Cube.js REST API driver."
   (:require [clojure.tools.logging :as log]
             [toucan.db :as db]
+            [cheshire.core :as json]
             [metabase.driver :as driver]
             [metabase.driver.cubejs.utils :as cube.utils]
             [metabase.models.metric :as metric :refer [Metric]]
@@ -101,10 +102,9 @@
   (log/debug "MBQL:" query)
   (let [base-query    (:query query)
         native-query  (cubejs.qp/mbql->cubejs base-query)]
-    {:query            native-query
+    {:query            (json/generate-string native-query {:pretty true})
      :measure-aliases  (into {} (for [[_ _ names] (:aggregation base-query)] {(keyword (cubejs.qp/get-metric-cube-name (:display-name names) (:source-table base-query))) (keyword (:name names))}))
-     :date-granularity-fields (cubejs.qp/pre-datetime-granularity base-query)
-     :mbql?            true}))
+     :date-granularity-fields (cubejs.qp/pre-datetime-granularity base-query)}))
 
 (defmethod driver/execute-query :cubejs [_ {native-query :native}]
   (log/debug "Native:" native-query)
