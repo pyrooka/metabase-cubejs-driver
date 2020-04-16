@@ -1,7 +1,6 @@
 (ns metabase.driver.cubejs.query-processor
   (:require [clojure.set :as set]
             [toucan.db :as db]
-            [cheshire.core :as json]
             [flatland.ordered.map :as ordered-map]
             [metabase.mbql.util :as mbql.u]
             [metabase.util.date-2 :as u.date]
@@ -491,14 +490,12 @@
   (let [num-cols  (map first (filter #(= (second %) :type/Number) types))]
     (map #(update-row-values % num-cols date-granularity-cols) rows)))
 
-(defn execute-http-request [native-query]
-  (if (and (:mbql? native-query) (empty? (:measures (:query native-query))) (empty? (:dimensions (:query native-query))) (empty? (:timeDimensions (:query native-query))))
-    {:rows []}
-    (let [query         (if (:mbql? native-query) (json/generate-string (:query native-query)) (:query native-query))
-          resp          (cube.utils/make-request "v1/load" query nil)
-          rows          (:data (:body resp))
-          annotation    (:annotation (:body resp))
-          types         (get-types annotation)
-          rows          (convert-values rows types (:date-granularity-fields native-query))
-          result        {:rows (for [row rows] (into (ordered-map/ordered-map) (set/rename-keys row (:measure-aliases native-query))))}]
-      result)))
+(defn execute-http-request [native-query]  
+  (let [query         (:query native-query)
+        resp          (cube.utils/make-request "v1/load" query nil)
+        rows          (:data (:body resp))
+        annotation    (:annotation (:body resp))
+        types         (get-types annotation)
+        rows          (convert-values rows types (:date-granularity-fields native-query))
+        result        {:rows (for [row rows] (into (ordered-map/ordered-map) (set/rename-keys row (:measure-aliases native-query))))}]
+    result))
