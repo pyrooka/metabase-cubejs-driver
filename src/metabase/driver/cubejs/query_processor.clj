@@ -1,12 +1,12 @@
 (ns metabase.driver.cubejs.query-processor
   (:require [clojure.set :as set]
             [toucan.db :as db]
-            [flatland.ordered.map :as ordered-map]
             [metabase.mbql.util :as mbql.u]
             [metabase.util.date-2 :as u.date]
             [metabase.query-processor.store :as qp.store]
             [metabase.models.metric :as metric :refer [Metric]]
             [metabase.driver.cubejs.utils :as cube.utils]
+            [metabase.query-processor.middleware.annotate :as annotate]
             [java-time :as time]))
 
 
@@ -317,7 +317,7 @@
     (reduce (fn [result-fields, cube-date-filter]
               (if (< (count (:values cube-date-filter)) 2)
                 result-fields
-                (assoc result-fields (:member cube-date-filter) {:type :timeDimension :name (:member cube-date-filter) :dateRange (:values cube-date-filter)})))         
+                (assoc result-fields (:member cube-date-filter) {:type :timeDimension :name (:member cube-date-filter) :dateRange (:values cube-date-filter)})))
             result-fields
             cube-date-filters)))
 
@@ -381,7 +381,7 @@
   [:month-of-year, :day-of-year, :day-of-month, :day-of-week ])  ;; TODO :week-of-year :minute-of-hour, :hour-of-day Not Suported
 
 (defn- is-process-granularity?
-  [granularity] 
+  [granularity]
   (some #(= granularity %) post-process-granularity))
 
 (defmulti ^:private ->datetime-granularity
@@ -401,10 +401,10 @@
 (defmethod ->datetime-granularity :datetime-field
   [[_ field granularity]]
   (let [field (->datetime-granularity field)]
-    {:name (keyword (:name field))  
+    {:name (keyword (:name field))
      :granularity granularity}))
 
-(defn pre-datetime-granularity 
+(defn pre-datetime-granularity
   [{:keys [breakout]}]
     (let [time-breakouts            (set (for [field breakout] (->datetime-granularity field)))
           filtered-time-breakouts   (filterv #(is-process-granularity? (:granularity %)) time-breakouts)]
@@ -441,11 +441,11 @@
 
 (defn update-row-values-datetime-granularity
   [date-granularity-fields field-name date]
-  (let [granularity (reduce (fn [granularity date-granularity-field] 
+  (let [granularity (reduce (fn [granularity date-granularity-field]
                       (if (= field-name (:name date-granularity-field))
                         (:granularity date-granularity-field)
                         granularity))
-                      {} date-granularity-fields)]  
+                      {} date-granularity-fields)]
     (if-not (nil? granularity)
       (extract-date granularity (time/local-date-time date))
       date)))
@@ -479,8 +479,8 @@
   (reduce-kv
    (fn [row key val]
     (let [num-val     (if (some #(= key %) num-cols) (parse-number val) val)
-          result-val  (if (some #(= key (:name %)) date-granularity-cols) (update-row-values-datetime-granularity date-granularity-cols key num-val ) num-val)]     
-    (assoc row key result-val)))      
+          result-val  (if (some #(= key (:name %)) date-granularity-cols) (update-row-values-datetime-granularity date-granularity-cols key num-val ) num-val)]
+    (assoc row key result-val)))
     {} row))
 
 (defn- convert-values
@@ -490,12 +490,21 @@
   (let [num-cols  (map first (filter #(= (second %) :type/Number) types))]
     (map #(update-row-values % num-cols date-granularity-cols) rows)))
 
-(defn execute-http-request [native-query]  
-  (let [query         (:query native-query)
-        resp          (cube.utils/make-request "v1/load" query nil)
-        rows          (:data (:body resp))
-        annotation    (:annotation (:body resp))
-        types         (get-types annotation)
-        rows          (convert-values rows types (:date-granularity-fields native-query))
-        result        {:rows (for [row rows] (into (ordered-map/ordered-map) (set/rename-keys row (:measure-aliases native-query))))}]
-    result))
+(defn execute-http-request [query respond]
+  (let [native          (:native query)
+        native-query    (:query native)
+        resp            (cube.utils/make-request "v1/load" native-query nil)
+        rows            (:data (:body resp))
+        annotation      (:annotation (:body resp))
+        types           (get-types annotation)
+        aliases         (:measure-aliases native)
+        cols            (vec (for [name (keys (first rows))] {:name (mbql.u/qualified-name (if-let [orig-name ((keyword name) aliases)] orig-name name))}))
+        rows            (convert-values rows types (:date-granularity-fields native))
+        cols-info       (annotate/merged-column-info query {:cols cols})
+        cols-name       (map #(keyword (:name %)) cols-info)
+        reverse-aliases (set/map-invert aliases)
+        cols-name-cube  (for [col-name cols-name] (if-let [cube-name (col-name reverse-aliases)] cube-name col-name))
+        result          (for [row rows] ((apply juxt cols-name-cube) row))]
+    (respond
+     {:cols cols}
+     result)))
