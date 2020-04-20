@@ -1,12 +1,12 @@
 (ns metabase.driver.cubejs.query-processor
   (:require [clojure.set :as set]
             [toucan.db :as db]
-            [flatland.ordered.map :as ordered-map]
             [metabase.mbql.util :as mbql.u]
             [metabase.util.date-2 :as u.date]
             [metabase.query-processor.store :as qp.store]
             [metabase.models.metric :as metric :refer [Metric]]
             [metabase.driver.cubejs.utils :as cube.utils]
+            [metabase.query-processor.middleware.annotate :as annotate]
             [java-time :as time]))
 
 
@@ -490,15 +490,21 @@
   (let [num-cols  (map first (filter #(= (second %) :type/Number) types))]
     (map #(update-row-values % num-cols date-granularity-cols) rows)))
 
-(defn execute-http-request [native-query respond]
-  (let [query         (:query native-query)
-        resp          (cube.utils/make-request "v1/load" query nil)
-        rows          (:data (:body resp))
-        annotation    (:annotation (:body resp))
-        types         (get-types annotation)
-        aliases       (:measure-aliases native-query)
-        cols          (into [] (for [name (keys (first rows))] {:name (if-let [orig-name ((keyword name) aliases)] orig-name name)}))
-        rows          (convert-values rows types (:date-granularity-fields native-query))]
+(defn execute-http-request [query respond]
+  (let [native          (:native query)
+        native-query    (:query native)
+        resp            (cube.utils/make-request "v1/load" native-query nil)
+        rows            (:data (:body resp))
+        annotation      (:annotation (:body resp))
+        types           (get-types annotation)
+        aliases         (:measure-aliases native)
+        cols            (vec (for [name (keys (first rows))] {:name (mbql.u/qualified-name (if-let [orig-name ((keyword name) aliases)] orig-name name))}))
+        rows            (convert-values rows types (:date-granularity-fields native))
+        cols-info       (annotate/merged-column-info query {:cols cols})
+        cols-name       (map #(keyword (:name %)) cols-info)
+        reverse-aliases (set/map-invert aliases)
+        cols-name-cube  (for [col-name cols-name] (if-let [cube-name (col-name reverse-aliases)] cube-name col-name))
+        result          (for [row rows] ((apply juxt cols-name-cube) row))]
     (respond
      {:cols cols}
-     (for [row rows] (vals row)))))
+     result)))
