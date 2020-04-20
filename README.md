@@ -27,7 +27,7 @@ Explanation:
 
 # Installation
 ## Requirements
-- Metabase v0.34.0 or newer
+- Metabase v0.35.0 or newer
 ## Get the driver
 ### Download
 Download from the [releases](https://github.com/lili-data/metabase-cubejs-driver/releases).
