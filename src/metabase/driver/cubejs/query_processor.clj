@@ -50,7 +50,7 @@
       dts1)))
 
 (defn- lower-bound [unit t]
-  (:start (u.date/range t unit )))
+  (:start (u.date/range t unit)))
 
 (defn- upper-bound [unit t] 
   (:end (u.date/range t unit {:start      :inclusive
