@@ -1,5 +1,6 @@
 (ns metabase.driver.cubejs.query-processor
   (:require [clojure.set :as set]
+            [clojure.string :as string]
             [toucan.db :as db]
             [metabase.mbql.util :as mbql.u]
             [metabase.util.date-2 :as u.date]
@@ -19,6 +20,14 @@
 
 (defn get-metric-cube-name [metric-display-name table-id]
   (:cube-name (:definition (db/select-one Metric :name metric-display-name :table_id table-id :archived false))))
+
+(defn- field-description->type
+  [field-description]
+  (let [type (first (string/split field-description #":"))]
+    (case type
+      "measure" :measure
+      "dimension" :dimension
+      (throw (Exception. (str "Invalid field type: "(name type) ". Must be `measure` or `dimension`."))))))
 
 (defn- is-datetime-field?
   [[ftype & _] [vtype & _]]
@@ -294,7 +303,7 @@
 (defmethod ->cubefield :field-id
   [[_ field-id]]
   (let [field (qp.store/field field-id)]
-    {:name (:name field) :type (keyword (:description field))}))
+    {:name (:name field) :type (field-description->type (:description field))}))
 
 (defmethod ->cubefield :aggregation-options [[_ _ ag-names]]
   (if-let [metric-cube-name (get-metric-cube-name (:display-name ag-names) (:source-table *query*))]
@@ -396,7 +405,7 @@
 (defmethod ->datetime-granularity :field-id
   [[_ field-id]]
   (let [field (qp.store/field field-id)]
-    {:name (keyword (:name field)) :type (keyword (:description field))}))
+    {:name (keyword (:name field)) :type (field-description->type (:description field))}))
 
 (defmethod ->datetime-granularity :datetime-field
   [[_ field granularity]]
