@@ -25,6 +25,11 @@ docker:
 	@echo "Building cubejs-metabackend image..."
 	@docker build -t cubejs-metabackend ${TESTENV}/cubejs
 
+## test: Test the code
+.PHONY: test
+test:
+	@docker run --rm -v $(shell pwd):/driver/metabase-cubejs-driver metabase-driver-builder /bin/sh -c "lein test"
+
 ## build: Builds the driver
 .PHONY: build
 build:
