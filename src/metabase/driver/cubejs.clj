@@ -43,7 +43,7 @@
     (merge
      {:name          (:name field)
       :database-type (:type field)
-      :field-comment type
+      :field-comment (str type ": "(:description field))
       :description   (:description field)
       :base-type     (cube.utils/cubejs-type->base-type (keyword (:type field)))
       :agg-type      (:aggType field)}
