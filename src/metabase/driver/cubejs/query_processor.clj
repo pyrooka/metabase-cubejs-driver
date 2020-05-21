@@ -339,7 +339,7 @@
                 (-> time-dimensions
                     (assoc-in [(:name new) :granularity] (:granularity new))
                     (assoc-in [(:name new) :type] :timeDimensionGran))
-                (assoc time-dimensions (:name new) {:type :dimension :name (:name new)}))
+                (assoc time-dimensions (:name new) {:type :dimension :name (:name new) :granularity (:granularity new)}))
               time-dimensions))
           time-dimensions
           cube-fields))
@@ -367,7 +367,7 @@
               (case (:type new)
                 :timeDimension (update result :timeDimensions #(conj % {:dimension (:name new) :dateRange (:dateRange new)}))
                 :timeDimensionGran (update result :timeDimensions #(conj % {:dimension (:name new) :granularity (:granularity new) :dateRange (:dateRange new)}))
-                :dimension     (update result :dimensions #(conj % (:name new)))
+                :dimension     (update result :timeDimensions #(conj % {:dimension (:name new) :granularity (:granularity new)}))
                 result))
             result
             (vals time-dimensions))))
@@ -415,8 +415,8 @@
 
 (defn pre-datetime-granularity
   [{:keys [breakout]}]
-    (let [time-breakouts            (set (for [field breakout] (->datetime-granularity field)))
-          filtered-time-breakouts   (filterv #(is-process-granularity? (:granularity %)) time-breakouts)]
+  (let [time-breakouts            (set (for [field breakout] (->datetime-granularity field)))
+        filtered-time-breakouts   (filterv #(is-process-granularity? (:granularity %)) time-breakouts)]
     filtered-time-breakouts))
 ;;; ----------------------------------------------- datetime granularity postprocessing  ------------------------------------------------
 
@@ -435,9 +435,9 @@
 (defmethod extract-date :day-of-week [_ date]
   (let [java-day  (.getValue (time/day-of-week date))
         moved-day  (+ java-day 1)]
-        (if (> moved-day 7)
-          1 ;; Sunday
-          moved-day)))
+    (if (> moved-day 7)
+      1 ;; Sunday
+      moved-day)))
 
 ; (defmethod extract-date :week-of-year [_ date]
 ; ) TODO :week-of-year
@@ -451,10 +451,10 @@
 (defn update-row-values-datetime-granularity
   [date-granularity-fields field-name date]
   (let [granularity (reduce (fn [granularity date-granularity-field]
-                      (if (= field-name (:name date-granularity-field))
-                        (:granularity date-granularity-field)
-                        granularity))
-                      {} date-granularity-fields)]
+                              (if (= field-name (:name date-granularity-field))
+                                (:granularity date-granularity-field)
+                                granularity))
+                            {} date-granularity-fields)]
     (if-not (nil? granularity)
       (extract-date granularity (time/local-date-time date))
       date)))
@@ -487,10 +487,10 @@
   [row num-cols date-granularity-cols]
   (reduce-kv
    (fn [row key val]
-    (let [num-val     (if (some #(= key %) num-cols) (parse-number val) val)
+     (let [num-val     (if (some #(= key %) num-cols) (parse-number val) val)
            result-val  (if (some #(= key (:name %)) date-granularity-cols) (update-row-values-datetime-granularity date-granularity-cols key num-val) num-val)]
-    (assoc row key result-val)))
-    {} row))
+       (assoc row key result-val)))
+   {} row))
 
 (defn- convert-values
   "Convert the values in the rows to the correct type."
