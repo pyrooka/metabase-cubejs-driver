@@ -27,7 +27,7 @@
     (case type
       "measure" :measure
       "dimension" :dimension
-      (throw (Exception. (str "Invalid field type: "(name type) ". Must be `measure` or `dimension`."))))))
+      (throw (Exception. (str "Invalid field type: " (name type) ". Must be `measure` or `dimension`."))))))
 
 (defn- is-datetime-field?
   [[ftype & _] [vtype & _]]
@@ -387,7 +387,7 @@
 ;;; ----------------------------------------------- datetime granularity preprocessing ------------------------------------------------
 
 (def ^:private post-process-granularity
-  [:month-of-year, :day-of-year, :day-of-month, :day-of-week ])  ;; TODO :week-of-year :minute-of-hour, :hour-of-day Not Suported
+  [:month-of-year, :day-of-year, :day-of-month, :day-of-week])  ;; TODO :week-of-year :minute-of-hour, :hour-of-day Not Suported
 
 (defn- is-process-granularity?
   [granularity]
@@ -488,7 +488,7 @@
   (reduce-kv
    (fn [row key val]
     (let [num-val     (if (some #(= key %) num-cols) (parse-number val) val)
-          result-val  (if (some #(= key (:name %)) date-granularity-cols) (update-row-values-datetime-granularity date-granularity-cols key num-val ) num-val)]
+           result-val  (if (some #(= key (:name %)) date-granularity-cols) (update-row-values-datetime-granularity date-granularity-cols key num-val) num-val)]
     (assoc row key result-val)))
     {} row))
 
