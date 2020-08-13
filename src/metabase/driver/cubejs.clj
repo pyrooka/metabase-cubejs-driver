@@ -1,6 +1,7 @@
 (ns metabase.driver.cubejs
   "Cube.js REST API driver."
   (:require [clojure.tools.logging :as log]
+            [medley.core :as m]
             [toucan.db :as db]
             [cheshire.core :as json]
             [metabase.driver :as driver]
@@ -95,8 +96,9 @@
     {:name   (:name cube)
      :schema (:schema cube)
      ;; Segments are currently unsupported.
-     ;; Remove the description key from the fields then create a set.
-     :fields (set (map #(dissoc % :description :agg-type) (concat measures dimensions)))}))
+     ;; Remove the description key from the set of fields then add the `database-position`.
+     :fields (set (for [[idx field] (m/indexed (set (concat measures dimensions)))]
+                  (assoc (dissoc field :description :agg-type) :database-position (inc idx))))}))
 
 (defmethod driver/mbql->native :cubejs [_ query]
   (log/debug "MBQL:" query)
