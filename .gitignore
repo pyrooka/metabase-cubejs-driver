@@ -10,3 +10,6 @@
 # Leiningen
 .lein-repl-history
 .nrepl-port
+
+# Calva
+.calva
