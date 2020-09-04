@@ -509,7 +509,7 @@
         aliases         (:measure-aliases native)
         cols            (vec (for [name (keys (first rows))] {:name (mbql.u/qualified-name (if-let [orig-name ((keyword name) aliases)] orig-name name))}))
         rows            (convert-values rows types (:date-granularity-fields native))
-        cols-info       (annotate/merged-column-info query {:cols cols})
+        cols-info       (if (= (:type query) :native) cols (annotate/merged-column-info query {:cols cols}))
         cols-name       (map #(keyword (:name %)) cols-info)
         reverse-aliases (set/map-invert aliases)
         cols-name-cube  (for [col-name cols-name] (if-let [cube-name (col-name reverse-aliases)] cube-name col-name))
