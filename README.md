@@ -7,11 +7,11 @@ With this driver you can use Cube.js as "backend" with Metabase as a "frontend".
 
 Explanation:
 
-|    Cube.js   |Metabase|
-|--------------|--------|
-|   measure    | metric |
-|   dimension  | field  |
-|time dimension| field  |
+|     Cube.js    |    Metabase    |
+|:--------------:|:--------------:|
+|     measure    | metric & field |
+|    dimension   |      field     |
+| time dimension |      field     |
 
 **NOTE**: The driver is under development so expect some bugs and missing features. If you find one please create an issue.
 
