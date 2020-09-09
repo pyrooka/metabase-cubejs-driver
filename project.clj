@@ -1,4 +1,4 @@
-(defproject metabase/cubejs-driver "0.13.2"
+(defproject metabase/cubejs-driver "0.14.0"
   :min-lein-version "2.5.0"
 
   :profiles
