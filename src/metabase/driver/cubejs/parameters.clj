@@ -47,7 +47,7 @@
 
     ;; convert temporal types to ISODate("2019-12-09T...") (etc.)
     (instance? Temporal x)
-    (format "ISODate(\"%s\")" (u.date/format x))
+    (format "\"%s\"" (u.date/format x))
 
     ;; there's a special record type for sequences of numbers; pull the sequence it wraps out and recur
     (instance? CommaSeparatedNumbers x)
