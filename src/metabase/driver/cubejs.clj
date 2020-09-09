@@ -7,7 +7,9 @@
             [metabase.driver :as driver]
             [metabase.driver.cubejs.utils :as cube.utils]
             [metabase.models.metric :as metric :refer [Metric]]
-            [metabase.driver.cubejs.query-processor :as cubejs.qp]))
+            [metabase.driver.cubejs
+             [query-processor :as cubejs.qp]
+             [parameters :as parameters]]))
 
 (defn- cubejs-agg->meta-agg
   "Returns the name of the cubejs aggregation in metabase."
@@ -54,12 +56,13 @@
 
 (driver/register! :cubejs)
 
+(defmethod driver/supports? [:cubejs :native-parameters] [_ _]                      true)
+
 (defmethod driver/supports? [:cubejs :foreign-keys] [_ _]                           false)
 (defmethod driver/supports? [:cubejs :nested-fields] [_ _]                          false)
 (defmethod driver/supports? [:cubejs :set-timezone] [_ _]                           false) ; ??
 (defmethod driver/supports? [:cubejs :basic-aggregations] [_ _]                     false)
 (defmethod driver/supports? [:cubejs :expressions] [_ _]                            false)
-(defmethod driver/supports? [:cubejs :native-parameters] [_ _]                      false)
 (defmethod driver/supports? [:cubejs :expression-aggregations] [_ _]                false)
 (defmethod driver/supports? [:cubejs :nested-queries] [_ _]                         false)
 (defmethod driver/supports? [:cubejs :binning] [_ _]                                false)
@@ -107,6 +110,10 @@
     {:query            (json/generate-string native-query {:pretty true})
      :measure-aliases  (into {} (for [[_ _ names] (:aggregation base-query)] {(keyword (cubejs.qp/get-metric-cube-name (:display-name names) (:source-table base-query))) (keyword (:name names))}))
      :date-granularity-fields (cubejs.qp/pre-datetime-granularity base-query)}))
+
+(defmethod driver/substitute-native-parameters :cubejs
+  [driver inner-query]
+  (parameters/substitute-native-parameters driver inner-query))
 
 (defmethod driver/execute-reducible-query :cubejs [_ query _ respond]
   (log/debug "Query:" query)

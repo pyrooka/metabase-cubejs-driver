@@ -19,11 +19,11 @@ Explanation:
 ## Working
 - **Auto generate data model** from the schema fetched from the Cube.js API meta endpoint
 - **Auto create metrics** from the measures. (These metrics are "invalid" when you try to edit them but still usable in queries.)
-- native queries
+- native queries with variables
 - custom questions
 - filters, orders, limit
 ## Not working
-- Aggregations like sum, count and distinct. This should be done in Cube.js not in Metabase.
+- Aggregations like sum, count and distinct. This must be done in Cube.js not in Metabase.
 
 # Installation
 ## Requirements
