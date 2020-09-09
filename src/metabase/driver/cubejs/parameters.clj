@@ -30,7 +30,7 @@
   (cond
     ;; sequences get converted to `$in`
     (sequential? x)
-    (format "{$in: [%s]}" (str/join ", " (map (partial param-value->str field) x)))
+    (format "%s" (str/join ", " (map (partial param-value->str field) x)))
 
     ;; Date = the Parameters Date type, not an java.util.Date or java.sql.Date type
     ;; convert to a `Temporal` instance and recur
@@ -88,11 +88,11 @@
               (format "{%s: {$lt: %s}}"  (field->name field) (param-value->str field (u.date/add t :day 1)))))
 
     :else
-    (format "{%s: %s}" (field->name field) (param-value->str field value))))
+    (format "%s" (param-value->str field value))))
 
 (defn- substitute-field-filter [{field :field, {:keys [value]} :value, :as field-filter}]
   (if (sequential? value)
-    (format "{%s: %s}" (field->name field) (param-value->str field value))
+    (format "%s" (param-value->str field value))
     (substitute-one-field-filter field-filter)))
 
 (defn- substitute-param [param->value [acc missing] in-optional? {:keys [k], :as param}]
