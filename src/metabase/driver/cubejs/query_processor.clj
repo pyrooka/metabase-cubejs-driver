@@ -1,6 +1,7 @@
 (ns metabase.driver.cubejs.query-processor
   (:require [clojure.set :as set]
             [clojure.string :as string]
+            [cheshire.core :as json]
             [toucan.db :as db]
             [metabase.mbql.util :as mbql.u]
             [metabase.util.date-2 :as u.date]
@@ -372,18 +373,6 @@
             result
             (vals time-dimensions))))
 
-;;; -------------------------------------------------- query build ---------------------------------------------------
-
-(defn mbql->cubejs
-  "Build a valid Cube.js query from the generated MBQL."
-  [query]
-  (binding [*query*  query]
-    (let [fields          (handle-fields query)
-          filters         (transform-filters query)
-          order-by        (handle-order-by query)
-          limit           (handle-limit query)]
-      (merge fields filters order-by limit))))
-
 ;;; ----------------------------------------------- datetime granularity preprocessing ------------------------------------------------
 
 (def ^:private post-process-granularity
@@ -458,6 +447,22 @@
     (if-not (nil? granularity)
       (extract-date granularity (time/local-date-time date))
       date)))
+
+;;; -------------------------------------------------- query build ---------------------------------------------------
+
+(defn mbql->cubejs
+  "Build a valid Cube.js query from the generated MBQL."
+  [base-query]
+  (binding [*query*  (:query base-query)]
+    (let [query           (:query base-query)
+          fields          (handle-fields query)
+          filters         (transform-filters query)
+          order-by        (handle-order-by query)
+          limit           (handle-limit query)
+          native-query    (merge fields filters order-by limit)]
+      {:query                   (json/generate-string native-query {:pretty true})
+       :measure-aliases         (into {} (for [[_ _ names] (:aggregation query)] {(keyword (get-metric-cube-name (:display-name names) (:source-table query))) (keyword (:name names))}))
+       :date-granularity-fields (pre-datetime-granularity query)})))
 
 ;;; ----------------------------------------------- result processing ------------------------------------------------
 

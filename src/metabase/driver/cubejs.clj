@@ -3,7 +3,6 @@
   (:require [clojure.tools.logging :as log]
             [medley.core :as m]
             [toucan.db :as db]
-            [cheshire.core :as json]
             [metabase.driver :as driver]
             [metabase.driver.cubejs.utils :as cube.utils]
             [metabase.models.metric :as metric :refer [Metric]]
@@ -105,11 +104,7 @@
 
 (defmethod driver/mbql->native :cubejs [_ query]
   (log/debug "MBQL:" query)
-  (let [base-query    (:query query)
-        native-query  (cubejs.qp/mbql->cubejs base-query)]
-    {:query            (json/generate-string native-query {:pretty true})
-     :measure-aliases  (into {} (for [[_ _ names] (:aggregation base-query)] {(keyword (cubejs.qp/get-metric-cube-name (:display-name names) (:source-table base-query))) (keyword (:name names))}))
-     :date-granularity-fields (cubejs.qp/pre-datetime-granularity base-query)}))
+  (cubejs.qp/mbql->cubejs query))
 
 (defmethod driver/substitute-native-parameters :cubejs
   [driver inner-query]
