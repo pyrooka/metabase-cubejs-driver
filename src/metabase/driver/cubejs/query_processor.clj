@@ -505,7 +505,7 @@
     (map #(update-row-values % num-cols date-granularity-cols) rows)))
 
 (defn execute-http-request [query respond]
-  (let [native          (:native query)
+  (let [native          (if (:native query) (:native query) (mbql->cubejs query)) ; If no native query in the query let's generate one (e.g. "View the SQL").
         native-query    (:query native)
         resp            (cube.utils/make-request "v1/load" native-query nil)
         rows            (:data (:body resp))
