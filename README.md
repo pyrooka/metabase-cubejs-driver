@@ -3,7 +3,8 @@
 [![Latest Release](https://img.shields.io/github/v/release/lili-data/metabase-cubejs-driver)](https://img.shields.io/github/v/release/lili-data/metabase-cubejs-driver)
 [![GitHub license](https://img.shields.io/badge/license-AGPL-05B8CC.svg)](https://raw.githubusercontent.com/lili-data/metabase-cubejs-driver/master/LICENSE)
 
-With this driver you can use Cube.js as "backend" with Metabase as a "frontend". Create the schemas in Cube.js connect with Metabase and you are ready to go: make queries, filter the results and create beautiful charts and dashboards.
+Cube.js driver for Metabase. With this driver you can connect your Cube.js server to Metabase just like a DB.  
+Metabase fetches all schemas (cubes) and that's all: you can make queries, filter the results and create beautiful charts and dashboards.
 
 Explanation:
 
