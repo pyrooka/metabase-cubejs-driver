@@ -36,6 +36,12 @@ build:
 repl:
 	docker run -it --rm -p 5555:5555 -v $(shell pwd):/driver/metabase-cubejs-driver metabase-driver-builder /bin/sh -c "lein repl :start :host 0.0.0.0 :port 5555"
 
+## rmc: Remove the test docker containers.
+.PHONY: rmc
+rmc:
+	@echo "Removing test containers..."
+	@cd ${TESTENV} && docker-compose rm -s -f
+
 ## clean: Cleanups your workplace
 .PHONY: clean
 clean:
