@@ -13,3 +13,6 @@
 
 # Calva
 .calva
+
+# Clj-kondo (Clojure linter)
+.clj-kondo
