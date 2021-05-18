@@ -1,7 +1,7 @@
 # metabase-cubejs-driver
 
-[![Latest Release](https://img.shields.io/github/v/release/lili-data/metabase-cubejs-driver)](https://img.shields.io/github/v/release/lili-data/metabase-cubejs-driver)
-[![GitHub license](https://img.shields.io/badge/license-AGPL-05B8CC.svg)](https://raw.githubusercontent.com/lili-data/metabase-cubejs-driver/master/LICENSE)
+[![Latest Release](https://img.shields.io/github/v/release/pyrooka/metabase-cubejs-driver)](https://img.shields.io/github/v/release/pyrooka/metabase-cubejs-driver)
+[![GitHub license](https://img.shields.io/badge/license-AGPL-05B8CC.svg)](https://raw.githubusercontent.com/pyrooka/metabase-cubejs-driver/master/LICENSE)
 
 Cube.js driver for Metabase. With this driver you can connect your Cube.js server to Metabase just like a DB.  
 Metabase fetches all schemas (cubes) and that's all: you can make queries, filter the results and create beautiful charts and dashboards.
@@ -31,7 +31,7 @@ Explanation:
 - Metabase v0.35.0 or newer
 ## Get the driver
 ### Download
-Download from the [releases](https://github.com/lili-data/metabase-cubejs-driver/releases).
+Download from the [releases](https://github.com/pyrooka/metabase-cubejs-driver/releases).
 ### Build with Docker
 1. Create the docker images: `make docker`
 2. Build the driver: `make build`
@@ -52,7 +52,7 @@ Note: you have to restart Metabase to load new plugins
 4. Explore the data ![Results](./docs/images/customresult.png)
 # Development
 ## Roadmap
-[v1.0.0](https://github.com/lili-data/metabase-cubejs-driver/milestone/1)
+[v1.0.0](https://github.com/pyrooka/metabase-cubejs-driver/milestone/1)
 
 ## Testing the driver
 1. Create the docker images: `make docker`
@@ -64,4 +64,4 @@ Note: you have to restart Metabase to load new plugins
 - If you can fix/implement it create a pull request
 
 # License
-[GNU Affero General Public License v3.0 (AGPL)](https://github.com/lili-data/metabase-cubejs-driver/blob/master/LICENSE)
+[GNU Affero General Public License v3.0 (AGPL)](https://github.com/pyrooka/metabase-cubejs-driver/blob/master/LICENSE)
