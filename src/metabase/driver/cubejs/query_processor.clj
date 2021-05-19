@@ -62,8 +62,10 @@
 (defn- lower-bound [unit t]
   (:start (u.date/range t unit)))
 
-(defn- upper-bound [unit t]
-  (:end (u.date/range t unit)))
+(defn- upper-bound [unit t] 
+  (:end (u.date/range t unit {:start      :inclusive
+							  :end        :inclusive
+							  :resolution :millisecond})))
 
 (defn ^:private mbql-granularity->cubejs-granularity
   [granularity]
@@ -119,7 +121,7 @@
 (defmethod ->rvalue :relative-datetime
   [[_ amount unit]]
   [(u.date/format (u.date/truncate (lower-bound unit (u.date/add unit amount)) unit))
-   (u.date/format (u.date/truncate (upper-bound unit (u.date/add unit amount)) unit))])
+   (u.date/format (upper-bound unit (u.date/add unit amount)))])
 
 (defmethod ->rvalue :absolute-datetime
   [[_ t]]
