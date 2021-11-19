@@ -1,3 +1,6 @@
+# NOTE
+CubeJS has an official SQL API now, so try that before using this driver, since it could be more reliable and well supported. You can find more info [here](https://cube.dev/docs/backend/sql).
+
 # metabase-cubejs-driver
 
 [![Latest Release](https://img.shields.io/github/v/release/pyrooka/metabase-cubejs-driver)](https://img.shields.io/github/v/release/pyrooka/metabase-cubejs-driver)
