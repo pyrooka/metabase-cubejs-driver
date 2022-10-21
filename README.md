@@ -1,6 +1,16 @@
 # NOTE
 CubeJS has an official SQL API now, so try that before using this driver, since it could be more reliable and well supported. You can find more info [here](https://cube.dev/docs/backend/sql).
 
+## Update
+Since Cube.js now provides an official way to connect it to Metabase, there is no need for this repo anymore so I'm making it read-only. It was a great journey to learn the "basic" of Clojure, to make this project work and to see how the data flows between the 2 apps.
+
+Thanks to all the people who helped me working on this in any way!
+
+
+Due to an unfortunate move by someone at my previous company, the "original" repo became private and we lost all the stars, so I leave this screenshot here as a memento :) ![archive](https://user-images.githubusercontent.com/15990318/197162857-9d178d94-9af6-422c-87c0-3a98bbd2d280.png)
+
+---
+
 # metabase-cubejs-driver
 
 [![Latest Release](https://img.shields.io/github/v/release/pyrooka/metabase-cubejs-driver)](https://img.shields.io/github/v/release/pyrooka/metabase-cubejs-driver)
